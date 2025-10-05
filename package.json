@@ -2,7 +2,7 @@
   "name": "orbit-ai",
   "displayName": "OrbitAI - AI Coding Assistant",
   "description": "Context-aware AI coding assistant powered by Claude. Features code understanding, bug fixing, refactoring, testing, and more.",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "publisher": "khanhromvn",
   "license": "MIT",
   "repository": {
