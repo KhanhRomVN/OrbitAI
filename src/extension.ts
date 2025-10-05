@@ -6,6 +6,16 @@ let cachedFocusedTabs: any[] = [];
 let wss: WebSocket.Server | null = null;
 let isServerRunning = false;
 
+// Lưu conversation history cho mỗi tab
+const conversationsByTab = new Map<number, ConversationMessage[]>();
+
+interface ConversationMessage {
+  role: "user" | "assistant" | "error";
+  content: string;
+  timestamp: number;
+  errorType?: string;
+}
+
 function startWebSocketServer(): void {
   if (isServerRunning) {
     vscode.window.showWarningMessage("OrbitAI: Server is already running");
@@ -22,7 +32,7 @@ function startWebSocketServer(): void {
 
     wss.on("listening", () => {
       console.log(
-        "[OrbitAI] WebSocket server is listening on ws://localhost:3031"
+        "[OrbitAI] ✅ WebSocket server listening on ws://localhost:3031"
       );
       vscode.window.showInformationMessage(
         "OrbitAI: Server started on port 3031"
@@ -32,33 +42,36 @@ function startWebSocketServer(): void {
     });
 
     wss.on("connection", (ws: WebSocket) => {
-      console.log("[OrbitAI] New client connected");
+      console.log("[OrbitAI] 🔌 New client connected");
 
       ws.on("message", (message: WebSocket.Data) => {
         try {
           const data = JSON.parse(message.toString());
-          console.log("[OrbitAI] Received message:", data);
+          console.log("[OrbitAI] 📩 Received:", data.type);
           handleMessage(data, ws);
         } catch (error) {
-          console.error("[OrbitAI] Failed to parse message:", error);
+          console.error("[OrbitAI] ❌ Failed to parse message:", error);
         }
       });
 
       ws.on("close", () => {
-        console.log("[OrbitAI] Client disconnected");
+        console.log("[OrbitAI] 🔌 Client disconnected");
       });
 
       ws.on("error", (error) => {
-        console.error("[OrbitAI] WebSocket error:", error);
+        console.error("[OrbitAI] ❌ WebSocket error:", error);
       });
 
       ws.send(
-        JSON.stringify({ type: "connected", message: "Welcome to OrbitAI" })
+        JSON.stringify({
+          type: "connected",
+          message: "Welcome to OrbitAI",
+        })
       );
     });
 
     wss.on("error", (error) => {
-      console.error("[OrbitAI] Server error:", error);
+      console.error("[OrbitAI] ❌ Server error:", error);
       vscode.window.showErrorMessage(
         `OrbitAI: Server error - ${error.message}`
       );
@@ -66,7 +79,7 @@ function startWebSocketServer(): void {
       provider?.updateServerStatus(false);
     });
   } catch (error) {
-    console.error("[OrbitAI] Failed to start server:", error);
+    console.error("[OrbitAI] ❌ Failed to start server:", error);
     vscode.window.showErrorMessage("OrbitAI: Failed to start server");
     isServerRunning = false;
     provider?.updateServerStatus(false);
@@ -82,20 +95,20 @@ function stopWebSocketServer(): void {
 
   try {
     wss.close(() => {
-      console.log("[OrbitAI] Server stopped");
+      console.log("[OrbitAI] 🛑 Server stopped");
       vscode.window.showInformationMessage("OrbitAI: Server stopped");
       isServerRunning = false;
       wss = null;
       provider?.updateServerStatus(false);
     });
   } catch (error) {
-    console.error("[OrbitAI] Failed to stop server:", error);
+    console.error("[OrbitAI] ❌ Failed to stop server:", error);
     vscode.window.showErrorMessage("OrbitAI: Failed to stop server");
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("OrbitAI Extension is now active");
+  console.log("✅ OrbitAI Extension is now active");
 
   // Start server by default
   startWebSocketServer();
@@ -143,53 +156,65 @@ export function activate(context: vscode.ExtensionContext) {
 function handleMessage(data: any, ws: WebSocket) {
   switch (data.type) {
     case "browserExtensionConnected":
-      console.log(
-        "[OrbitAI] ✅ Firefox extension connected at",
-        new Date(data.timestamp)
-      );
+      console.log("[OrbitAI] ✅ Firefox extension connected");
       break;
 
     case "focusedTabsUpdate":
-      console.log(
-        "[OrbitAI] 🎯 Focused tabs update:",
-        data.data?.length || 0,
-        "tabs"
-      );
-      console.log("[OrbitAI] 📋 Data:", JSON.stringify(data.data, null, 2));
-
-      // Cache data
+      console.log("[OrbitAI] 🎯 Focused tabs update:", data.data?.length || 0);
       cachedFocusedTabs = data.data || [];
 
-      // Broadcast to webview
       if (provider && provider.getView()) {
-        console.log("[OrbitAI] ✅ Sending to webview...");
         provider.getView()?.webview.postMessage({
           type: "focusedTabsUpdate",
           data: data.data,
         });
-      } else {
-        console.warn("[OrbitAI] ⚠️ WebView not ready yet");
       }
       break;
 
-    case "tabCreated":
-      console.log("[OrbitAI] 📝 Tab created:", data.tab);
-      ws.send(JSON.stringify({ type: "ack", messageId: data.id }));
-      break;
+    case "promptResponse":
+      console.log("[OrbitAI] 💬 Prompt response:", {
+        success: data.success,
+        tabId: data.tabId,
+        hasResponse: !!data.response,
+        error: data.error,
+      });
 
-    case "tabRemoved":
-      console.log("[OrbitAI] ❌ Tab removed:", data.tabId);
-      ws.send(JSON.stringify({ type: "ack", messageId: data.id }));
-      break;
+      // Lưu vào conversation history
+      const tabId = data.tabId;
+      if (!conversationsByTab.has(tabId)) {
+        conversationsByTab.set(tabId, []);
+      }
 
-    case "tabUpdated":
-      console.log("[OrbitAI] 🔄 Tab updated:", data.tabId, data.changes);
-      ws.send(JSON.stringify({ type: "ack", messageId: data.id }));
-      break;
+      const conversation = conversationsByTab.get(tabId)!;
 
-    case "groupsChanged":
-      console.log("[OrbitAI] 📂 Groups changed, total:", data.groups?.length);
-      ws.send(JSON.stringify({ type: "ack", messageId: data.id }));
+      if (data.success) {
+        conversation.push({
+          role: "assistant",
+          content: data.response,
+          timestamp: Date.now(),
+        });
+      } else {
+        conversation.push({
+          role: "error",
+          content: data.error || "Unknown error",
+          timestamp: Date.now(),
+          errorType: data.errorType,
+        });
+      }
+
+      // Broadcast tới webview
+      if (provider && provider.getView()) {
+        provider.getView()?.webview.postMessage({
+          type: "promptResponse",
+          requestId: data.requestId,
+          tabId: data.tabId,
+          success: data.success,
+          response: data.response,
+          error: data.error,
+          errorType: data.errorType,
+          conversation: conversation,
+        });
+      }
       break;
 
     default:
@@ -198,7 +223,7 @@ function handleMessage(data: any, ws: WebSocket) {
 }
 
 export function deactivate() {
-  console.log("OrbitAI Extension is now deactivated");
+  console.log("OrbitAI Extension deactivated");
   if (wss) {
     wss.close();
   }
@@ -237,18 +262,11 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-    // Send initial server status
+    // Send initial data
     setTimeout(() => {
       this.updateServerStatus(isServerRunning);
-    }, 100);
 
-    // Send cached data immediately when webview is ready
-    setTimeout(() => {
       if (cachedFocusedTabs.length > 0) {
-        console.log(
-          "[OrbitAI] 📤 Sending cached focused tabs to webview:",
-          cachedFocusedTabs.length
-        );
         webviewView.webview.postMessage({
           type: "focusedTabsUpdate",
           data: cachedFocusedTabs,
@@ -262,22 +280,68 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
         case "startServer":
           vscode.commands.executeCommand("orbit-ai.startServer");
           break;
+
         case "stopServer":
           vscode.commands.executeCommand("orbit-ai.stopServer");
           break;
+
         case "restartServer":
           vscode.commands.executeCommand("orbit-ai.restartServer");
           break;
-        case "broadcast":
-          if (wss) {
-            wss.clients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data.message));
-              }
-            });
-          }
+
+        case "sendPrompt":
+          this.handleSendPrompt(data);
+          break;
+
+        case "getConversation":
+          this.handleGetConversation(data);
           break;
       }
+    });
+  }
+
+  private handleSendPrompt(data: any) {
+    console.log(
+      "[WebSocketViewProvider] 📤 Sending prompt to tab:",
+      data.tabId
+    );
+
+    // Lưu user message vào conversation
+    const tabId = data.tabId;
+    if (!conversationsByTab.has(tabId)) {
+      conversationsByTab.set(tabId, []);
+    }
+
+    conversationsByTab.get(tabId)!.push({
+      role: "user",
+      content: data.prompt,
+      timestamp: Date.now(),
+    });
+
+    // Gửi qua WebSocket tới Firefox
+    if (wss) {
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(
+            JSON.stringify({
+              type: "sendPrompt",
+              requestId: data.requestId,
+              tabId: data.tabId,
+              prompt: data.prompt,
+            })
+          );
+        }
+      });
+    }
+  }
+
+  private handleGetConversation(data: any) {
+    const conversation = conversationsByTab.get(data.tabId) || [];
+
+    this._view?.webview.postMessage({
+      type: "conversationHistory",
+      tabId: data.tabId,
+      conversation: conversation,
     });
   }
 
@@ -287,168 +351,298 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrbitAI Server</title>
+    <title>OrbitAI Chat</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            padding: 10px;
+            padding: 0;
             color: var(--vscode-foreground);
             font-family: var(--vscode-font-family);
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
-        .status {
+
+        .server-controls {
             padding: 10px;
-            margin-bottom: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+        }
+
+        .status {
+            padding: 8px;
+            margin-bottom: 8px;
             border-radius: 4px;
             color: white;
-            transition: background-color 0.3s;
+            font-size: 12px;
+            text-align: center;
         }
+
         .status.running {
             background-color: var(--vscode-testing-iconPassed);
         }
+
         .status.stopped {
             background-color: var(--vscode-testing-iconFailed);
         }
+
         .controls {
             display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
+            gap: 6px;
         }
+
         .controls button {
             flex: 1;
+            padding: 6px;
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .controls button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tab-selector {
+            padding: 10px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+        }
+
+        .tab-selector label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 6px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .tab-selector select {
+            width: 100%;
+            padding: 6px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background-color: var(--vscode-input-background);
+            border-left: 3px solid var(--vscode-charts-blue);
+        }
+
+        .message.assistant {
+            background-color: var(--vscode-editor-background);
+            border-left: 3px solid var(--vscode-charts-green);
+        }
+
+        .message.error {
+            background-color: var(--vscode-inputValidation-errorBackground);
+            border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+            color: var(--vscode-errorForeground);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .message-role {
+            font-weight: 600;
+        }
+
+        .message-time {
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .error-type {
+            display: inline-block;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 6px;
+        }
+
+        .no-messages {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+
+        .input-area {
+            padding: 10px;
+            border-top: 1px solid var(--vscode-panel-border);
+            background-color: var(--vscode-editor-background);
+        }
+
+        .input-area textarea {
+            width: 100%;
+            min-height: 60px;
+            max-height: 150px;
             padding: 8px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            resize: vertical;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
+        }
+
+        .input-area textarea:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+
+        .input-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .input-controls button {
+            padding: 6px 16px;
             background: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
-            transition: background-color 0.2s;
         }
-        .controls button:hover {
+
+        .input-controls button:hover:not(:disabled) {
             background: var(--vscode-button-hoverBackground);
         }
-        .controls button:disabled {
+
+        .input-controls button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        .section {
-            margin-top: 15px;
-        }
-        .section-title {
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: var(--vscode-foreground);
-            font-size: 13px;
-        }
-        #focused-tabs {
-            padding: 10px;
-            background-color: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        .tab-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            padding: 8px;
-            margin-bottom: 8px;
-            background-color: var(--vscode-input-background);
-            border-radius: 4px;
-            border-left: 3px solid var(--vscode-charts-blue);
-        }
-        .tab-item:last-child {
-            margin-bottom: 0;
-        }
-        .tab-favicon {
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .tab-info {
-            flex: 1;
-            min-width: 0;
-        }
-        .tab-title {
-            font-weight: 500;
-            font-size: 13px;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .tab-url {
+
+        .char-count {
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 4px;
         }
-        .tab-meta {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .tab-container {
-            color: var(--vscode-charts-blue);
-        }
-        .tab-timestamp {
-            color: var(--vscode-descriptionForeground);
-        }
-        .no-focus {
-            text-align: center;
-            padding: 20px;
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-            font-size: 12px;
-        }
-        .count-badge {
+
+        .loading {
             display: inline-block;
-            background-color: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            margin-left: 6px;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--vscode-button-foreground);
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h2>OrbitAI WebSocket Server</h2>
-    
-    <div id="status" class="status running">
-        Server running on ws://localhost:3031
-    </div>
-
-    <div class="controls">
-        <button id="start-btn" onclick="startServer()">Start</button>
-        <button id="stop-btn" onclick="stopServer()">Stop</button>
-        <button id="restart-btn" onclick="restartServer()">Restart</button>
-    </div>
-
-    <div class="section">
-        <div class="section-title">
-            Focused Claude Tabs
-            <span id="count-badge" class="count-badge">0</span>
+    <div class="server-controls">
+        <div id="status" class="status running">Server running</div>
+        <div class="controls">
+            <button id="start-btn" onclick="startServer()">Start</button>
+            <button id="stop-btn" onclick="stopServer()">Stop</button>
+            <button id="restart-btn" onclick="restartServer()">Restart</button>
         </div>
-        <div id="focused-tabs">
-            <div class="no-focus">No focused tabs</div>
+    </div>
+
+    <div class="tab-selector">
+        <label>Select Claude Tab:</label>
+        <select id="tab-select" onchange="onTabChanged()">
+            <option value="">-- No focused tabs --</option>
+        </select>
+    </div>
+
+    <div class="chat-container">
+        <div id="messages" class="messages">
+            <div class="no-messages">Select a tab and start chatting</div>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <textarea 
+            id="prompt-input" 
+            placeholder="Type your message to Claude..."
+            onkeydown="handleKeyPress(event)"
+        ></textarea>
+        <div class="input-controls">
+            <span id="char-count" class="char-count">0 characters</span>
+            <button id="send-btn" onclick="sendPrompt()" disabled>Send</button>
         </div>
     </div>
 
     <script>
         const vscode = acquireVsCodeApi();
-        const focusedTabsContainer = document.getElementById('focused-tabs');
-        const countBadge = document.getElementById('count-badge');
-        const statusDiv = document.getElementById('status');
-        const startBtn = document.getElementById('start-btn');
-        const stopBtn = document.getElementById('stop-btn');
-        const restartBtn = document.getElementById('restart-btn');
+        
+        let focusedTabs = [];
+        let currentTabId = null;
+        let isWaitingResponse = false;
+        let currentConversation = [];
+        
+        const elements = {
+            status: document.getElementById('status'),
+            startBtn: document.getElementById('start-btn'),
+            stopBtn: document.getElementById('stop-btn'),
+            restartBtn: document.getElementById('restart-btn'),
+            tabSelect: document.getElementById('tab-select'),
+            messages: document.getElementById('messages'),
+            promptInput: document.getElementById('prompt-input'),
+            sendBtn: document.getElementById('send-btn'),
+            charCount: document.getElementById('char-count')
+        };
 
+        // Server controls
         function startServer() {
             vscode.postMessage({ type: 'startServer' });
         }
@@ -463,67 +657,180 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
 
         function updateServerStatus(isRunning) {
             if (isRunning) {
-                statusDiv.className = 'status running';
-                statusDiv.textContent = 'Server running on ws://localhost:3031';
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                restartBtn.disabled = false;
+                elements.status.className = 'status running';
+                elements.status.textContent = 'Server running on ws://localhost:3031';
+                elements.startBtn.disabled = true;
+                elements.stopBtn.disabled = false;
+                elements.restartBtn.disabled = false;
             } else {
-                statusDiv.className = 'status stopped';
-                statusDiv.textContent = 'Server stopped';
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                restartBtn.disabled = true;
+                elements.status.className = 'status stopped';
+                elements.status.textContent = 'Server stopped';
+                elements.startBtn.disabled = false;
+                elements.stopBtn.disabled = true;
+                elements.restartBtn.disabled = true;
             }
         }
 
-        window.addEventListener('message', event => {
-            const message = event.data;
-            
-            if (message.type === 'focusedTabsUpdate') {
-                updateFocusedTabs(message.data);
-            } else if (message.type === 'serverStatusUpdate') {
-                updateServerStatus(message.isRunning);
-            }
-        });
+        // Tab management
+        function updateTabList(tabs) {
+            focusedTabs = tabs || [];
+            elements.tabSelect.innerHTML = '';
 
-        function updateFocusedTabs(tabs) {
-            if (!tabs || tabs.length === 0) {
-                focusedTabsContainer.innerHTML = '<div class="no-focus">No focused tabs</div>';
-                countBadge.textContent = '0';
+            if (focusedTabs.length === 0) {
+                elements.tabSelect.innerHTML = '<option value="">-- No focused tabs --</option>';
+                elements.sendBtn.disabled = true;
                 return;
             }
 
-            countBadge.textContent = tabs.length.toString();
-            
-            focusedTabsContainer.innerHTML = tabs.map(tab => {
-                const timeSince = getTimeSince(tab.timestamp);
-                return \`
-                    <div class="tab-item">
-                        <img class="tab-favicon" 
-                             src="\${tab.favIconUrl || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><text y="14" font-size="14">🌐</text></svg>'}" 
-                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text y=%2214%22 font-size=%2214%22>🌐</text></svg>'"
-                        />
-                        <div class="tab-info">
-                            <div class="tab-title">\${escapeHtml(tab.title)}</div>
-                            <div class="tab-url">\${escapeHtml(tab.url)}</div>
-                            <div class="tab-meta">
-                                <span class="tab-container">\${escapeHtml(tab.containerName)}</span>
-                                <span class="tab-timestamp">\${timeSince}</span>
-                            </div>
-                        </div>
-                    </div>
-                \`;
-            }).join('');
+            focusedTabs.forEach(tab => {
+                const option = document.createElement('option');
+                option.value = tab.tabId;
+                option.textContent = \`\${tab.containerName} - \${tab.title.substring(0, 30)}\`;
+                elements.tabSelect.appendChild(option);
+            });
+
+            // Auto-select first tab nếu chưa có tab nào được chọn
+            if (!currentTabId && focusedTabs.length > 0) {
+                currentTabId = focusedTabs[0].tabId;
+                elements.tabSelect.value = currentTabId;
+                loadConversation();
+            }
+
+            updateSendButtonState();
         }
 
-        function getTimeSince(timestamp) {
-            const seconds = Math.floor((Date.now() - timestamp) / 1000);
-            if (seconds < 60) return 'just now';
-            const minutes = Math.floor(seconds / 60);
-            if (minutes < 60) return \`\${minutes} min\${minutes > 1 ? 's' : ''} ago\`;
-            const hours = Math.floor(minutes / 60);
-            return \`\${hours} hour\${hours > 1 ? 's' : ''} ago\`;
+        function onTabChanged() {
+            const selectedTabId = parseInt(elements.tabSelect.value);
+            if (selectedTabId) {
+                currentTabId = selectedTabId;
+                loadConversation();
+            } else {
+                currentTabId = null;
+                currentConversation = [];
+                renderMessages();
+            }
+            updateSendButtonState();
+        }
+
+        function loadConversation() {
+            if (!currentTabId) return;
+            
+            vscode.postMessage({
+                type: 'getConversation',
+                tabId: currentTabId
+            });
+        }
+
+        // Message handling
+        function sendPrompt() {
+            const prompt = elements.promptInput.value.trim();
+            if (!prompt || !currentTabId || isWaitingResponse) return;
+
+            isWaitingResponse = true;
+            updateSendButtonState();
+
+            // Generate request ID
+            const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            // Add user message immediately
+            const userMessage = {
+                role: 'user',
+                content: prompt,
+                timestamp: Date.now()
+            };
+            currentConversation.push(userMessage);
+            renderMessages();
+
+            // Clear input
+            elements.promptInput.value = '';
+            updateCharCount();
+
+            // Send to backend
+            vscode.postMessage({
+                type: 'sendPrompt',
+                requestId: requestId,
+                tabId: currentTabId,
+                prompt: prompt
+            });
+
+            // Add loading indicator
+            addLoadingMessage();
+        }
+
+        function addLoadingMessage() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant';
+            loadingDiv.id = 'loading-message';
+            loadingDiv.innerHTML = \`
+                <div class="message-header">
+                    <span class="message-role">Claude AI</span>
+                    <span class="message-time">Thinking...</span>
+                </div>
+                <div class="message-content">
+                    <span class="loading"></span>
+                    Waiting for response...
+                </div>
+            \`;
+            elements.messages.appendChild(loadingDiv);
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMsg = document.getElementById('loading-message');
+            if (loadingMsg) {
+                loadingMsg.remove();
+            }
+        }
+
+        function renderMessages() {
+            if (currentConversation.length === 0) {
+                elements.messages.innerHTML = '<div class="no-messages">No messages yet. Start chatting!</div>';
+                return;
+            }
+
+            elements.messages.innerHTML = '';
+            currentConversation.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = \`message \${msg.role}\`;
+
+                const roleText = msg.role === 'user' ? 'You' : 
+                               msg.role === 'assistant' ? 'Claude AI' : 
+                               'Error';
+
+                const timeStr = formatTime(msg.timestamp);
+
+                let contentHTML = \`<div class="message-content">\${escapeHtml(msg.content)}</div>\`;
+                
+                if (msg.role === 'error' && msg.errorType) {
+                    contentHTML = \`
+                        <div class="message-content">
+                            <span class="error-type">\${msg.errorType}</span>
+                            <br><br>
+                            \${escapeHtml(msg.content)}
+                        </div>
+                    \`;
+                }
+
+                messageDiv.innerHTML = \`
+                    <div class="message-header">
+                        <span class="message-role">\${roleText}</span>
+                        <span class="message-time">\${timeStr}</span>
+                    </div>
+                    \${contentHTML}
+                \`;
+
+                elements.messages.appendChild(messageDiv);
+            });
+
+            elements.messages.scrollTop = elements.messages.scrollHeight;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
         }
 
         function escapeHtml(text) {
@@ -531,6 +838,72 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
             div.textContent = text;
             return div.innerHTML;
         }
+
+        // Input handling
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendPrompt();
+            }
+        }
+
+        elements.promptInput.addEventListener('input', updateCharCount);
+
+        function updateCharCount() {
+            const count = elements.promptInput.value.length;
+            elements.charCount.textContent = \`\${count} characters\`;
+            updateSendButtonState();
+        }
+
+        function updateSendButtonState() {
+            const hasText = elements.promptInput.value.trim().length > 0;
+            const hasTab = currentTabId !== null;
+            elements.sendBtn.disabled = !hasText || !hasTab || isWaitingResponse;
+        }
+
+        // WebSocket message handling
+        window.addEventListener('message', event => {
+            const message = event.data;
+
+            switch (message.type) {
+                case 'serverStatusUpdate':
+                    updateServerStatus(message.isRunning);
+                    break;
+
+                case 'focusedTabsUpdate':
+                    updateTabList(message.data);
+                    break;
+
+                case 'conversationHistory':
+                    if (message.tabId === currentTabId) {
+                        currentConversation = message.conversation || [];
+                        renderMessages();
+                    }
+                    break;
+
+                case 'promptResponse':
+                    removeLoadingMessage();
+                    isWaitingResponse = false;
+                    updateSendButtonState();
+
+                    if (message.tabId === currentTabId) {
+                        const responseMessage = {
+                            role: message.success ? 'assistant' : 'error',
+                            content: message.success ? message.response : message.error,
+                            timestamp: Date.now(),
+                            errorType: message.errorType
+                        };
+
+                        currentConversation.push(responseMessage);
+                        renderMessages();
+                    }
+                    break;
+            }
+        });
+
+        // Initialize
+        updateCharCount();
+        updateSendButtonState();
     </script>
 </body>
 </html>`;
