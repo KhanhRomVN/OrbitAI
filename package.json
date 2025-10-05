@@ -158,6 +158,46 @@
       {
         "command": "orbit-ai.connectToPort",
         "title": "OrbitAI: Connect to Specific Port"
+      },
+      {
+        "command": "orbit-ai.createCollection",
+        "title": "OrbitAI: Create Collection",
+        "icon": "$(add)"
+      },
+      {
+        "command": "orbit-ai.refreshCollectionView",
+        "title": "OrbitAI: Refresh Collections",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "orbit-ai.showCollectionMenu",
+        "title": "Collection Menu",
+        "icon": "$(kebab-vertical)"
+      },
+      {
+        "command": "orbit-ai.expandCollection",
+        "title": "Expand Collection",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "orbit-ai.collapseCollection",
+        "title": "Collapse Collection",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "orbit-ai.copyCollectionContent",
+        "title": "Copy Collection Content",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "orbit-ai.renameCollection",
+        "title": "Rename Collection",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "orbit-ai.deleteCollection",
+        "title": "Delete Collection",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -165,6 +205,67 @@
         {
           "submenu": "orbit-ai.editorMenu",
           "group": "1_modification"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "orbit-ai.createCollection",
+          "when": "view == orbit-ai-collections",
+          "group": "navigation@1",
+          "icon": "$(add)"
+        },
+        {
+          "command": "orbit-ai.refreshCollectionView",
+          "when": "view == orbit-ai-collections",
+          "group": "navigation@2",
+          "icon": "$(refresh)"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "orbit-ai.showCollectionMenu",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "inline@1"
+        },
+        {
+          "command": "orbit-ai.expandCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "inline@2"
+        },
+        {
+          "command": "orbit-ai.copyCollectionContent",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "inline@3"
+        },
+        {
+          "command": "orbit-ai.renameCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "orbit-ai.deleteCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "orbit-ai.addFilesToCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "2_files@1"
+        },
+        {
+          "command": "orbit-ai.removeFilesFromCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "2_files@2"
+        },
+        {
+          "command": "orbit-ai.collection.selectAllFilesInFolder",
+          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
+          "group": "inline@1"
+        },
+        {
+          "command": "orbit-ai.collection.unselectAllFilesInFolder",
+          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
+          "group": "inline@2"
         }
       ],
       "orbit-ai.editorMenu": [
@@ -201,26 +302,6 @@
         {
           "command": "orbit-ai.chat",
           "group": "4_custom"
-        },
-        {
-          "command": "orbit-ai.addFilesToCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "orbit-ai.removeFilesFromCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "1_modification@2"
-        },
-        {
-          "command": "orbit-ai.collection.selectAllFilesInFolder",
-          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
-          "group": "inline@1"
-        },
-        {
-          "command": "orbit-ai.collection.unselectAllFilesInFolder",
-          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
-          "group": "inline@2"
         }
       ],
       "commandPalette": [
