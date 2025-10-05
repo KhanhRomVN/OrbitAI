@@ -1,7 +1,7 @@
 {
   "name": "orbit-ai",
-  "displayName": "OrbitAI",
-  "description": "A WebSocket client for VSCode to connect and interact with WebSocket servers in real-time.",
+  "displayName": "OrbitAI - AI Coding Assistant",
+  "description": "Context-aware AI coding assistant powered by Claude. Features code understanding, bug fixing, refactoring, testing, and more.",
   "version": "1.0.0",
   "publisher": "khanhromvn",
   "license": "MIT",
@@ -14,12 +14,19 @@
     "vscode": "^1.50.0"
   },
   "categories": [
+    "Programming Languages",
+    "Machine Learning",
     "Other"
   ],
   "keywords": [
-    "websocket",
-    "client",
-    "realtime"
+    "ai",
+    "claude",
+    "copilot",
+    "coding assistant",
+    "code generation",
+    "refactoring",
+    "testing",
+    "documentation"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -29,20 +36,214 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "websocket-container",
-          "title": "WebSocket",
-          "icon": "$(plug)"
+          "id": "orbit-ai-container",
+          "title": "OrbitAI",
+          "icon": "$(robot)"
         }
       ]
     },
     "views": {
-      "websocket-container": [
+      "orbit-ai-container": [
         {
           "type": "webview",
           "id": "websocketView",
-          "name": "WebSocket Client"
+          "name": "Chat"
         }
       ]
+    },
+    "commands": [
+      {
+        "command": "orbit-ai.startServer",
+        "title": "OrbitAI: Start Server"
+      },
+      {
+        "command": "orbit-ai.stopServer",
+        "title": "OrbitAI: Stop Server"
+      },
+      {
+        "command": "orbit-ai.restartServer",
+        "title": "OrbitAI: Restart Server"
+      },
+      {
+        "command": "orbit-ai.explainCode",
+        "title": "OrbitAI: Explain Code",
+        "icon": "$(question)"
+      },
+      {
+        "command": "orbit-ai.fixCode",
+        "title": "OrbitAI: Fix Code",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "orbit-ai.refactorCode",
+        "title": "OrbitAI: Refactor Code",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "orbit-ai.generateTests",
+        "title": "OrbitAI: Generate Tests",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "orbit-ai.addDocumentation",
+        "title": "OrbitAI: Add Documentation",
+        "icon": "$(book)"
+      },
+      {
+        "command": "orbit-ai.editCode",
+        "title": "OrbitAI: Edit Code",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "orbit-ai.chat",
+        "title": "OrbitAI: Chat",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "orbit-ai.showContext",
+        "title": "OrbitAI: Show Context (Debug)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "orbit-ai.editorMenu",
+          "group": "1_modification"
+        }
+      ],
+      "orbit-ai.editorMenu": [
+        {
+          "command": "orbit-ai.explainCode",
+          "when": "editorHasSelection",
+          "group": "1_understand"
+        },
+        {
+          "command": "orbit-ai.fixCode",
+          "when": "editorHasSelection",
+          "group": "2_improve"
+        },
+        {
+          "command": "orbit-ai.refactorCode",
+          "when": "editorHasSelection",
+          "group": "2_improve"
+        },
+        {
+          "command": "orbit-ai.generateTests",
+          "when": "editorHasSelection",
+          "group": "3_generate"
+        },
+        {
+          "command": "orbit-ai.addDocumentation",
+          "when": "editorHasSelection",
+          "group": "3_generate"
+        },
+        {
+          "command": "orbit-ai.editCode",
+          "when": "editorHasSelection",
+          "group": "4_custom"
+        },
+        {
+          "command": "orbit-ai.chat",
+          "group": "4_custom"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "orbit-ai.explainCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "orbit-ai.fixCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "orbit-ai.refactorCode",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "orbit-ai.generateTests",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "orbit-ai.addDocumentation",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "orbit-ai.editCode",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "orbit-ai.editorMenu",
+        "label": "OrbitAI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "orbit-ai.chat",
+        "key": "ctrl+shift+l",
+        "mac": "cmd+shift+l"
+      },
+      {
+        "command": "orbit-ai.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "orbit-ai.fixCode",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "orbit-ai.editCode",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "OrbitAI",
+      "properties": {
+        "orbitAI.maxContextTokens": {
+          "type": "number",
+          "default": 100000,
+          "description": "Maximum number of tokens to include in context"
+        },
+        "orbitAI.autoFormatCode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically format code after applying changes"
+        },
+        "orbitAI.previewChangesBeforeApplying": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show diff preview before applying code changes"
+        },
+        "orbitAI.includeOpenFiles": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include open files in context"
+        },
+        "orbitAI.includeDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include errors and warnings in context"
+        },
+        "orbitAI.maxOpenFiles": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of open files to include in context"
+        },
+        "orbitAI.serverPort": {
+          "type": "number",
+          "default": 3031,
+          "description": "WebSocket server port"
+        }
+      }
     }
   },
   "scripts": {
@@ -50,7 +251,8 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@types/node": "20.x",
