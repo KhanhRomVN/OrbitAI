@@ -174,17 +174,41 @@ export async function activate(context: vscode.ExtensionContext) {
     provider.updateServerStatus(false, defaultPort);
   }, 200);
 
-  // Update collections list in webview
-  if (provider.updateCollectionsList) {
-    provider.updateCollectionsList(collectionService.getAllCollections());
-  }
+  // Update collections list in webview with increased delay
+  setTimeout(() => {
+    console.log("[Extension] Attempting to update collections list...");
+    const allCollections = collectionService.getAllCollections();
+    console.log(
+      "[Extension] Collections available:",
+      allCollections.length,
+      allCollections.map((c) => c.name)
+    );
+
+    if (provider.updateCollectionsList) {
+      console.log("[Extension] Calling updateCollectionsList...");
+      provider.updateCollectionsList(allCollections);
+    } else {
+      console.log(
+        "[Extension] WARNING: updateCollectionsList method not found!"
+      );
+    }
+  }, 500); // Increased delay to ensure webview is fully initialized
 
   // Listen for collection changes
   const refreshCollections = () => {
     collectionProvider.refresh();
-    // Update collections list in webview - 🆕 THÊM PHƯƠNG THỨC MỚI
-    if (provider.updateCollectionsList) {
-      provider.updateCollectionsList(collectionService.getAllCollections());
+
+    // Update collections list in webview
+    if (provider && provider.updateCollectionsList) {
+      // Delay nhỏ để đảm bảo collection đã được lưu vào storage
+      setTimeout(() => {
+        const allCollections = collectionService.getAllCollections();
+        console.log(
+          "[Extension] Refreshing collections in webview:",
+          allCollections.length
+        );
+        provider.updateCollectionsList(allCollections);
+      }, 300);
     }
   };
 

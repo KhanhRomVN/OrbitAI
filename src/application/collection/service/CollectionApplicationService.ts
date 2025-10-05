@@ -63,6 +63,15 @@ export class CollectionApplicationService {
       this.notificationService.showSuccess(
         `Collection "${response.collection.name}" created${fileInfo}`
       );
+
+      // 🆕 THÊM: Cập nhật webview collections list
+      const provider = (global as any).webviewProvider;
+      const collectionService = (global as any).collectionService;
+      if (provider && provider.updateCollectionsList && collectionService) {
+        setTimeout(() => {
+          provider.updateCollectionsList(collectionService.getAllCollections());
+        }, 200);
+      }
     } catch (error) {
       this.notificationService.showError(
         `Failed to create collection: ${

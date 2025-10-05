@@ -52,11 +52,30 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   public updateCollectionsList(collections: any[]): void {
+    console.log(
+      "[WebviewProvider] updateCollectionsList called, collections:",
+      collections.length
+    );
+
+    // Convert collections to plain data objects
+    const collectionsData = collections.map((c) => {
+      if (typeof c.toData === "function") {
+        return c.toData();
+      }
+      return c;
+    });
+
     if (this._view) {
+      console.log("[WebviewProvider] Webview exists, sending message...");
       this._view.webview.postMessage({
         type: "collectionsUpdate",
-        collections: collections,
+        collections: collectionsData,
       });
+      console.log("[WebviewProvider] Message sent with data:", collectionsData);
+    } else {
+      console.log("[WebviewProvider] WARNING: Webview not initialized yet!");
+      // Store collections to send later when webview is ready
+      (this as any)._pendingCollections = collectionsData;
     }
   }
 
@@ -97,6 +116,20 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
           type: "initialPort",
           port: savedPort,
         });
+
+        // Send pending collections if any
+        const pendingCollections = (this as any)._pendingCollections;
+        if (pendingCollections) {
+          console.log(
+            "[WebviewProvider] Sending pending collections:",
+            pendingCollections.length
+          );
+          this._view.webview.postMessage({
+            type: "collectionsUpdate",
+            collections: pendingCollections,
+          });
+          delete (this as any)._pendingCollections;
+        }
       }
     }, 200);
 

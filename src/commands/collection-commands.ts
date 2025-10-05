@@ -185,6 +185,15 @@ async function handleCreateCollection(
     includeOpenFiles,
     openFileUris: includeOpenFiles ? openEditors : [],
   });
+
+  const provider = (global as any).webviewProvider;
+  const container = ServiceContainer.getInstance();
+  const collectionService =
+    container.resolve<CollectionService>("CollectionService");
+
+  if (provider && provider.updateCollectionsList) {
+    provider.updateCollectionsList(collectionService.getAllCollections());
+  }
 }
 
 async function handleDeleteCollection(
