@@ -2,60 +2,126 @@ import * as vscode from "vscode";
 import * as WebSocket from "ws";
 
 let provider: WebSocketViewProvider | undefined;
+let cachedFocusedTabs: any[] = [];
+let wss: WebSocket.Server | null = null;
+let isServerRunning = false;
+
+function startWebSocketServer(): void {
+  if (isServerRunning) {
+    vscode.window.showWarningMessage("OrbitAI: Server is already running");
+    provider?.updateServerStatus(true);
+    return;
+  }
+
+  try {
+    wss = new WebSocket.Server({
+      port: 3031,
+      perMessageDeflate: false,
+      clientTracking: true,
+    });
+
+    wss.on("listening", () => {
+      console.log(
+        "[OrbitAI] WebSocket server is listening on ws://localhost:3031"
+      );
+      vscode.window.showInformationMessage(
+        "OrbitAI: Server started on port 3031"
+      );
+      isServerRunning = true;
+      provider?.updateServerStatus(true);
+    });
+
+    wss.on("connection", (ws: WebSocket) => {
+      console.log("[OrbitAI] New client connected");
+
+      ws.on("message", (message: WebSocket.Data) => {
+        try {
+          const data = JSON.parse(message.toString());
+          console.log("[OrbitAI] Received message:", data);
+          handleMessage(data, ws);
+        } catch (error) {
+          console.error("[OrbitAI] Failed to parse message:", error);
+        }
+      });
+
+      ws.on("close", () => {
+        console.log("[OrbitAI] Client disconnected");
+      });
+
+      ws.on("error", (error) => {
+        console.error("[OrbitAI] WebSocket error:", error);
+      });
+
+      ws.send(
+        JSON.stringify({ type: "connected", message: "Welcome to OrbitAI" })
+      );
+    });
+
+    wss.on("error", (error) => {
+      console.error("[OrbitAI] Server error:", error);
+      vscode.window.showErrorMessage(
+        `OrbitAI: Server error - ${error.message}`
+      );
+      isServerRunning = false;
+      provider?.updateServerStatus(false);
+    });
+  } catch (error) {
+    console.error("[OrbitAI] Failed to start server:", error);
+    vscode.window.showErrorMessage("OrbitAI: Failed to start server");
+    isServerRunning = false;
+    provider?.updateServerStatus(false);
+  }
+}
+
+function stopWebSocketServer(): void {
+  if (!isServerRunning || !wss) {
+    vscode.window.showWarningMessage("OrbitAI: Server is not running");
+    provider?.updateServerStatus(false);
+    return;
+  }
+
+  try {
+    wss.close(() => {
+      console.log("[OrbitAI] Server stopped");
+      vscode.window.showInformationMessage("OrbitAI: Server stopped");
+      isServerRunning = false;
+      wss = null;
+      provider?.updateServerStatus(false);
+    });
+  } catch (error) {
+    console.error("[OrbitAI] Failed to stop server:", error);
+    vscode.window.showErrorMessage("OrbitAI: Failed to stop server");
+  }
+}
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("OrbitAI Extension is now active");
 
-  // Tạo WebSocket server
-  const wss = new WebSocket.Server({ port: 3031 });
+  // Start server by default
+  startWebSocketServer();
 
-  wss.on("listening", () => {
-    console.log(
-      "[OrbitAI] WebSocket server is listening on ws://localhost:3031"
-    );
-    vscode.window.showInformationMessage(
-      "OrbitAI: WebSocket server started on port 3031"
-    );
-  });
+  // Register commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("orbit-ai.startServer", () => {
+      startWebSocketServer();
+    })
+  );
 
-  wss.on("connection", (ws: WebSocket) => {
-    console.log("[OrbitAI] New client connected");
+  context.subscriptions.push(
+    vscode.commands.registerCommand("orbit-ai.stopServer", () => {
+      stopWebSocketServer();
+    })
+  );
 
-    ws.on("message", (message: WebSocket.Data) => {
-      try {
-        const data = JSON.parse(message.toString());
-        console.log("[OrbitAI] Received message:", data);
-
-        // Xử lý message từ Firefox extension
-        handleMessage(data, ws);
-      } catch (error) {
-        console.error("[OrbitAI] Failed to parse message:", error);
-      }
-    });
-
-    ws.on("close", () => {
-      console.log("[OrbitAI] Client disconnected");
-    });
-
-    ws.on("error", (error) => {
-      console.error("[OrbitAI] WebSocket error:", error);
-    });
-
-    // Gửi welcome message
-    ws.send(
-      JSON.stringify({ type: "connected", message: "Welcome to OrbitAI" })
-    );
-  });
-
-  wss.on("error", (error) => {
-    console.error("[OrbitAI] Server error:", error);
-    vscode.window.showErrorMessage(
-      `OrbitAI: Failed to start WebSocket server - ${error.message}`
-    );
-  });
+  context.subscriptions.push(
+    vscode.commands.registerCommand("orbit-ai.restartServer", () => {
+      stopWebSocketServer();
+      setTimeout(() => startWebSocketServer(), 1000);
+    })
+  );
 
   // Register webview provider
-  provider = new WebSocketViewProvider(context.extensionUri, wss);
+  provider = new WebSocketViewProvider(context.extensionUri);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -67,7 +133,9 @@ export function activate(context: vscode.ExtensionContext) {
   // Cleanup on deactivation
   context.subscriptions.push({
     dispose: () => {
-      wss.close();
+      if (wss) {
+        wss.close();
+      }
     },
   });
 }
@@ -87,12 +155,20 @@ function handleMessage(data: any, ws: WebSocket) {
         data.data?.length || 0,
         "tabs"
       );
+      console.log("[OrbitAI] 📋 Data:", JSON.stringify(data.data, null, 2));
+
+      // Cache data
+      cachedFocusedTabs = data.data || [];
+
       // Broadcast to webview
       if (provider && provider.getView()) {
+        console.log("[OrbitAI] ✅ Sending to webview...");
         provider.getView()?.webview.postMessage({
           type: "focusedTabsUpdate",
           data: data.data,
         });
+      } else {
+        console.warn("[OrbitAI] ⚠️ WebView not ready yet");
       }
       break;
 
@@ -123,23 +199,29 @@ function handleMessage(data: any, ws: WebSocket) {
 
 export function deactivate() {
   console.log("OrbitAI Extension is now deactivated");
+  if (wss) {
+    wss.close();
+  }
 }
 
 class WebSocketViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "websocketView";
   private _view?: vscode.WebviewView;
-  private _wss: WebSocket.Server;
 
   public getView(): vscode.WebviewView | undefined {
     return this._view;
   }
 
-  constructor(
-    private readonly _extensionUri: vscode.Uri,
-    wss: WebSocket.Server
-  ) {
-    this._wss = wss;
+  public updateServerStatus(isRunning: boolean): void {
+    if (this._view) {
+      this._view.webview.postMessage({
+        type: "serverStatusUpdate",
+        isRunning: isRunning,
+      });
+    }
   }
+
+  constructor(private readonly _extensionUri: vscode.Uri) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -155,16 +237,45 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+    // Send initial server status
+    setTimeout(() => {
+      this.updateServerStatus(isServerRunning);
+    }, 100);
+
+    // Send cached data immediately when webview is ready
+    setTimeout(() => {
+      if (cachedFocusedTabs.length > 0) {
+        console.log(
+          "[OrbitAI] 📤 Sending cached focused tabs to webview:",
+          cachedFocusedTabs.length
+        );
+        webviewView.webview.postMessage({
+          type: "focusedTabsUpdate",
+          data: cachedFocusedTabs,
+        });
+      }
+    }, 500);
+
     // Handle messages from webview
     webviewView.webview.onDidReceiveMessage((data) => {
       switch (data.type) {
+        case "startServer":
+          vscode.commands.executeCommand("orbit-ai.startServer");
+          break;
+        case "stopServer":
+          vscode.commands.executeCommand("orbit-ai.stopServer");
+          break;
+        case "restartServer":
+          vscode.commands.executeCommand("orbit-ai.restartServer");
+          break;
         case "broadcast":
-          // Broadcast message tới tất cả clients
-          this._wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(data.message));
-            }
-          });
+          if (wss) {
+            wss.clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(data.message));
+              }
+            });
+          }
           break;
       }
     });
@@ -187,8 +298,37 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
             padding: 10px;
             margin-bottom: 10px;
             border-radius: 4px;
-            background-color: var(--vscode-testing-iconPassed);
             color: white;
+            transition: background-color 0.3s;
+        }
+        .status.running {
+            background-color: var(--vscode-testing-iconPassed);
+        }
+        .status.stopped {
+            background-color: var(--vscode-testing-iconFailed);
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .controls button {
+            flex: 1;
+            padding: 8px;
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+        .controls button:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        .controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .section {
             margin-top: 15px;
@@ -280,13 +420,19 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
 <body>
     <h2>OrbitAI WebSocket Server</h2>
     
-    <div class="status">
-        ✅ Server running on ws://localhost:3031
+    <div id="status" class="status running">
+        Server running on ws://localhost:3031
+    </div>
+
+    <div class="controls">
+        <button id="start-btn" onclick="startServer()">Start</button>
+        <button id="stop-btn" onclick="stopServer()">Stop</button>
+        <button id="restart-btn" onclick="restartServer()">Restart</button>
     </div>
 
     <div class="section">
         <div class="section-title">
-            📌 Focused Claude Tabs
+            Focused Claude Tabs
             <span id="count-badge" class="count-badge">0</span>
         </div>
         <div id="focused-tabs">
@@ -295,14 +441,49 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
     </div>
 
     <script>
+        const vscode = acquireVsCodeApi();
         const focusedTabsContainer = document.getElementById('focused-tabs');
         const countBadge = document.getElementById('count-badge');
+        const statusDiv = document.getElementById('status');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        function startServer() {
+            vscode.postMessage({ type: 'startServer' });
+        }
+
+        function stopServer() {
+            vscode.postMessage({ type: 'stopServer' });
+        }
+
+        function restartServer() {
+            vscode.postMessage({ type: 'restartServer' });
+        }
+
+        function updateServerStatus(isRunning) {
+            if (isRunning) {
+                statusDiv.className = 'status running';
+                statusDiv.textContent = 'Server running on ws://localhost:3031';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                restartBtn.disabled = false;
+            } else {
+                statusDiv.className = 'status stopped';
+                statusDiv.textContent = 'Server stopped';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                restartBtn.disabled = true;
+            }
+        }
 
         window.addEventListener('message', event => {
             const message = event.data;
             
             if (message.type === 'focusedTabsUpdate') {
                 updateFocusedTabs(message.data);
+            } else if (message.type === 'serverStatusUpdate') {
+                updateServerStatus(message.isRunning);
             }
         });
 
@@ -327,8 +508,8 @@ class WebSocketViewProvider implements vscode.WebviewViewProvider {
                             <div class="tab-title">\${escapeHtml(tab.title)}</div>
                             <div class="tab-url">\${escapeHtml(tab.url)}</div>
                             <div class="tab-meta">
-                                <span class="tab-container">📦 \${escapeHtml(tab.containerName)}</span>
-                                <span class="tab-timestamp">⏰ \${timeSince}</span>
+                                <span class="tab-container">\${escapeHtml(tab.containerName)}</span>
+                                <span class="tab-timestamp">\${timeSince}</span>
                             </div>
                         </div>
                     </div>
