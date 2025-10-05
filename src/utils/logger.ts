@@ -60,9 +60,6 @@ export class Logger {
       this.outputChannel.appendLine(logMessage);
     }
 
-    // Also log to console for development
-    console.log(logMessage);
-
     // Show critical errors as notifications
     if (level === LogLevel.CRITICAL) {
       vscode.window.showErrorMessage(`[OrbitAI Critical] ${message}`);

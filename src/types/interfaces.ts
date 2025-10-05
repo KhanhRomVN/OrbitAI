@@ -17,6 +17,7 @@ export interface FocusedTab {
 
 export interface WebSocketMessage {
   type: string;
+  systemPrompt?: string;
   [key: string]: any;
 }
 

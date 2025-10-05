@@ -18,7 +18,8 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       tabId: number,
       prompt: string,
       requestId: string,
-      collectionId: string | null
+      collectionId: string | null,
+      systemPrompt?: string // 🆕 Thêm parameter
     ) => void
   ) {}
 
@@ -27,18 +28,12 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   public updateServerStatus(isRunning: boolean, port?: number): void {
-    console.log(
-      `[WebviewProvider] Updating server status: running=${isRunning}, port=${port}`
-    ); // DEBUG
     if (this._view) {
       this._view.webview.postMessage({
         type: "serverStatusUpdate",
         isRunning: isRunning,
         port: port,
       });
-      console.log(`[WebviewProvider] Message sent to webview`); // DEBUG
-    } else {
-      console.log(`[WebviewProvider] Warning: _view is not initialized`); // DEBUG
     }
   }
 
@@ -52,11 +47,6 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   public updateCollectionsList(collections: any[]): void {
-    console.log(
-      "[WebviewProvider] updateCollectionsList called, collections:",
-      collections.length
-    );
-
     // Convert collections to plain data objects
     const collectionsData = collections.map((c) => {
       if (typeof c.toData === "function") {
@@ -66,14 +56,11 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
     });
 
     if (this._view) {
-      console.log("[WebviewProvider] Webview exists, sending message...");
       this._view.webview.postMessage({
         type: "collectionsUpdate",
         collections: collectionsData,
       });
-      console.log("[WebviewProvider] Message sent with data:", collectionsData);
     } else {
-      console.log("[WebviewProvider] WARNING: Webview not initialized yet!");
       // Store collections to send later when webview is ready
       (this as any)._pendingCollections = collectionsData;
     }
@@ -120,10 +107,6 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
         // Send pending collections if any
         const pendingCollections = (this as any)._pendingCollections;
         if (pendingCollections) {
-          console.log(
-            "[WebviewProvider] Sending pending collections:",
-            pendingCollections.length
-          );
           this._view.webview.postMessage({
             type: "collectionsUpdate",
             collections: pendingCollections,
@@ -290,7 +273,7 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private async handleSendPrompt(data: any): Promise<void> {
-    const { tabId, prompt, requestId } = data;
+    const { tabId, prompt, requestId, collectionId } = data;
 
     // Store user message
     this.conversationStore.addMessage(tabId, {
@@ -299,8 +282,58 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       timestamp: Date.now(),
     });
 
-    // Send prompt directly
-    this.onSendPrompt(tabId, prompt, requestId, null);
+    // Build prompt with collection content if collectionId is provided
+    let finalUserPrompt = prompt;
+    let systemPrompt: string | undefined;
+
+    if (collectionId) {
+      try {
+        const builtPrompt = await this.promptBuilder.buildPrompt(
+          collectionId,
+          prompt,
+          undefined
+        );
+        finalUserPrompt = builtPrompt.userPrompt;
+        systemPrompt = builtPrompt.systemPrompt; // 🆕 Lấy system prompt
+      } catch (error) {
+        console.error("Failed to build prompt with collection:", error);
+        // Fallback to original prompt if collection build fails
+      }
+    } else {
+      // Nếu không có collection, vẫn build system prompt
+      try {
+        const builtPrompt = await this.promptBuilder.buildPrompt(
+          null,
+          prompt,
+          undefined
+        );
+        systemPrompt = builtPrompt.systemPrompt; // 🆕 Lấy system prompt
+      } catch (error) {
+        console.error("Failed to build system prompt:", error);
+      }
+    }
+
+    // Send prompt with BOTH system and user prompt
+    this.sendPromptWithSystemInstruction(
+      tabId,
+      finalUserPrompt,
+      requestId,
+      collectionId,
+      systemPrompt
+    );
+  }
+
+  private sendPromptWithSystemInstruction(
+    tabId: number,
+    userPrompt: string,
+    requestId: string,
+    collectionId: string | null,
+    systemPrompt?: string
+  ): void {
+    this.onSendPrompt(tabId, userPrompt, requestId, collectionId);
+
+    // Nếu có system prompt, gửi riêng hoặc gửi kèm theo message
+    // Tùy vào cách browser extension xử lý
   }
 
   private handleGetConversation(data: any): void {

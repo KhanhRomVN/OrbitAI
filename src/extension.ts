@@ -121,7 +121,8 @@ export async function activate(context: vscode.ExtensionContext) {
       tabId: number,
       prompt: string,
       requestId: string,
-      collectionId: string | null
+      collectionId: string | null,
+      systemPrompt?: string // 🆕 Thêm parameter
     ) => {
       // Callback to send prompt to Claude
       server.sendToAllClients({
@@ -130,6 +131,7 @@ export async function activate(context: vscode.ExtensionContext) {
         tabId,
         prompt,
         collectionId,
+        systemPrompt, // 🆕 Gửi kèm system prompt
       });
     }
   );
@@ -176,21 +178,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Update collections list in webview with increased delay
   setTimeout(() => {
-    console.log("[Extension] Attempting to update collections list...");
     const allCollections = collectionService.getAllCollections();
-    console.log(
-      "[Extension] Collections available:",
-      allCollections.length,
-      allCollections.map((c) => c.name)
-    );
-
     if (provider.updateCollectionsList) {
-      console.log("[Extension] Calling updateCollectionsList...");
       provider.updateCollectionsList(allCollections);
-    } else {
-      console.log(
-        "[Extension] WARNING: updateCollectionsList method not found!"
-      );
     }
   }, 500); // Increased delay to ensure webview is fully initialized
 
@@ -203,10 +193,6 @@ export async function activate(context: vscode.ExtensionContext) {
       // Delay nhỏ để đảm bảo collection đã được lưu vào storage
       setTimeout(() => {
         const allCollections = collectionService.getAllCollections();
-        console.log(
-          "[Extension] Refreshing collections in webview:",
-          allCollections.length
-        );
         provider.updateCollectionsList(allCollections);
       }, 300);
     }

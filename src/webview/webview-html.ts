@@ -486,9 +486,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         }
 
         function updateCollectionsList(newCollections) {
-            console.log('[Webview] updateCollectionsList called:', newCollections);
             collections = newCollections || [];
-            console.log('[Webview] Collections updated, count:', collections.length);
             
             const collectionSelect = document.getElementById('collection-select');
             if (!collectionSelect) return;
@@ -656,7 +654,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
         window.addEventListener('message', event => {
             const message = event.data;
-            console.log('[Webview] Received message:', message); // DEBUG
 
             switch (message.type) {
                 case 'serverStatusUpdate':
@@ -704,7 +701,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                     }
                     break;
                 case 'collectionsUpdate':
-                    console.log('[Webview] collectionsUpdate received:', message.collections);
                     updateCollectionsList(message.collections);
                     break;
             }

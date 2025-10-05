@@ -115,7 +115,6 @@ export class WebSocketServer {
       }
 
       this.wss.close(() => {
-        console.log("[OrbitAI] 🛑 Server stopped");
         vscode.window.showInformationMessage("OrbitAI: Server stopped");
         this.isRunning = false;
         this.wss = null;
