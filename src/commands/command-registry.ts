@@ -2,13 +2,11 @@
 import * as vscode from "vscode";
 import { AICommands } from "./ai-commands";
 import { ServerCommands } from "./server-commands";
-import { ContextManager } from "../context/context-manager";
 
 export class CommandRegistry {
   constructor(
     private aiCommands: AICommands,
-    private serverCommands: ServerCommands,
-    private contextManager: ContextManager
+    private serverCommands: ServerCommands
   ) {}
 
   registerAll(context: vscode.ExtensionContext): void {
@@ -83,40 +81,16 @@ export class CommandRegistry {
       )
     );
 
-    // Debug command
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.showContext", () =>
-        this.showContextDebug()
+      vscode.commands.registerCommand("orbit-ai.showServerPort", () =>
+        this.serverCommands.showServerPort()
       )
     );
-  }
 
-  private async showContextDebug(): Promise<void> {
-    const context = await this.contextManager.collectContext({
-      includeOpenFiles: true,
-      includeSelection: true,
-      includeDiagnostics: true,
-      includeWorkspace: false,
-    });
-
-    const panel = vscode.window.createWebviewPanel(
-      "contextPreview",
-      "Context Preview",
-      vscode.ViewColumn.Two,
-      {}
+    context.subscriptions.push(
+      vscode.commands.registerCommand("orbit-ai.connectToPort", () =>
+        this.serverCommands.connectToPort()
+      )
     );
-
-    panel.webview.html = `
-      <html>
-        <body>
-          <h2>Collected Context</h2>
-          <p>Total items: ${context.items.length}</p>
-          <p>Estimated tokens: ${context.totalTokens}</p>
-          <p>Strategy: ${context.strategy}</p>
-          <hr>
-          <pre>${JSON.stringify(context.items, null, 2)}</pre>
-        </body>
-      </html>
-    `;
   }
 }

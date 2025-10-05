@@ -13,6 +13,22 @@ export class WebSocketServer {
     this.port = port;
   }
 
+  /**
+   * Update server port (for workspace-specific port)
+   */
+  setPort(port: number): void {
+    if (this.isRunning) {
+      throw new Error(
+        "Cannot change port while server is running. Stop server first."
+      );
+    }
+    this.port = port;
+  }
+
+  getPort(): number {
+    return this.port;
+  }
+
   setMessageHandler(handler: (data: any, ws: WebSocket) => void): void {
     this.messageHandler = handler;
   }
@@ -32,19 +48,23 @@ export class WebSocketServer {
         });
 
         this.wss.on("listening", () => {
-          console.log(
-            `[OrbitAI] ✅ WebSocket server listening on ws://localhost:${this.port}`
-          );
           vscode.window.showInformationMessage(
             `OrbitAI: Server started on port ${this.port}`
           );
           this.isRunning = true;
+
+          // Gửi status update sau khi server đã listening
+          const provider = (global as any).webviewProvider;
+          if (provider) {
+            setTimeout(() => {
+              provider.updateServerStatus(true, this.port);
+            }, 100);
+          }
+
           resolve();
         });
 
         this.wss.on("connection", (ws: WebSocket) => {
-          console.log("[OrbitAI] 🔌 New client connected");
-
           ws.on("message", (message: WebSocket.Data) => {
             try {
               const data = JSON.parse(message.toString());

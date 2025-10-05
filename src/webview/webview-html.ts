@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 
 export function getWebviewHtml(webview: vscode.Webview): string {
+  // @ts-ignore - HTML template with embedded JavaScript
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,77 +27,89 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             overflow: hidden;
         }
 
-        .server-controls {
-            padding: 10px;
+        /* ===== COMPACT SERVER STATUS ===== */
+        .server-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
             border-bottom: 1px solid var(--vscode-panel-border);
             background-color: var(--vscode-editor-background);
-        }
-
-        .status {
-            padding: 8px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            color: white;
-            font-size: 12px;
-            text-align: center;
-        }
-
-        .status.running {
-            background-color: var(--vscode-testing-iconPassed);
-        }
-
-        .status.stopped {
-            background-color: var(--vscode-testing-iconFailed);
-        }
-
-        .controls {
-            display: flex;
-            gap: 6px;
-        }
-
-        .controls button {
-            flex: 1;
-            padding: 6px;
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
             font-size: 11px;
         }
 
-        .controls button:hover {
-            background: var(--vscode-button-hoverBackground);
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .controls button:disabled {
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--vscode-testing-iconFailed);
+        }
+
+        .status-dot.running {
+            background-color: var(--vscode-testing-iconPassed);
+        }
+
+        .status-text {
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .server-controls-compact {
+            display: flex;
+            gap: 4px;
+        }
+
+        .server-controls-compact button {
+            padding: 3px 8px;
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .server-controls-compact button:hover:not(:disabled) {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        .server-controls-compact button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .tab-selector {
-            padding: 10px;
+        /* ===== COLLECTION BUTTON ===== */
+        .toolbar {
+            padding: 8px 10px;
             border-bottom: 1px solid var(--vscode-panel-border);
             background-color: var(--vscode-editor-background);
         }
 
-        .tab-selector label {
-            display: block;
-            font-size: 11px;
-            margin-bottom: 6px;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        .tab-selector select {
+        .toolbar button {
             width: 100%;
             padding: 6px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
             border-radius: 4px;
+            cursor: pointer;
             font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
 
+        .toolbar button:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+        }
+
+        /* ===== CHAT AREA ===== */
         .chat-container {
             flex: 1;
             display: flex;
@@ -171,6 +184,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             font-style: italic;
         }
 
+        /* ===== INPUT AREA ===== */
         .input-area {
             padding: 10px;
             border-top: 1px solid var(--vscode-panel-border);
@@ -189,6 +203,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             resize: vertical;
             font-family: var(--vscode-font-family);
             font-size: 13px;
+            margin-bottom: 8px;
         }
 
         .input-area textarea:focus {
@@ -196,11 +211,57 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             border-color: var(--vscode-focusBorder);
         }
 
+        /* ===== TAB SELECTOR (Moved below input) ===== */
+        .tab-selector {
+            margin-bottom: 8px;
+        }
+
+        .tab-selector label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .tab-selector select {
+            width: 100%;
+            padding: 6px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .selectors-container {
+            margin-bottom: 8px;
+        }
+
+        .collection-selector {
+            margin-top: 8px;
+        }
+
+        .collection-selector label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: var(--vscode-descriptionForeground);
+        }
+
+        .collection-selector select {
+            width: 100%;
+            padding: 6px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
         .input-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 8px;
         }
 
         .input-controls button {
@@ -244,34 +305,61 @@ export function getWebviewHtml(webview: vscode.Webview): string {
     </style>
 </head>
 <body>
-    <div class="server-controls">
-        <div id="status" class="status running">Server running</div>
-        <div class="controls">
-            <button id="start-btn" onclick="startServer()">Start</button>
-            <button id="stop-btn" onclick="stopServer()">Stop</button>
-            <button id="restart-btn" onclick="restartServer()">Restart</button>
+    <!-- Compact Server Status Bar -->
+    <div class="server-status-bar">
+        <div class="status-indicator">
+            <span id="status-dot" class="status-dot"></span>
+            <span id="status-text" class="status-text">Server: Not connected</span>
+        </div>
+        <div class="server-controls-compact">
+            <button id="start-btn" onclick="startServer()">Connect</button>
+            <button id="stop-btn" onclick="stopServer()" disabled>Stop</button>
+            <button id="restart-btn" onclick="restartServer()" disabled>Restart</button>
         </div>
     </div>
 
-    <div class="tab-selector">
-        <label>Select Claude Tab:</label>
-        <select id="tab-select" onchange="onTabChanged()">
-            <option value="">-- No focused tabs --</option>
-        </select>
+    <!-- Collection Management Button -->
+    <div class="toolbar">
+        <button onclick="openCollections()">
+            <span>📁</span>
+            <span>Manage Collections</span>
+        </button>
     </div>
 
+    <!-- Chat Messages -->
     <div class="chat-container">
         <div id="messages" class="messages">
             <div class="no-messages">Select a tab and start chatting</div>
         </div>
     </div>
 
+    <!-- Input Area (with Tab Selector moved here) -->
     <div class="input-area">
         <textarea 
             id="prompt-input" 
             placeholder="Type your message to Claude..."
             onkeydown="handleKeyPress(event)"
         ></textarea>
+
+        <!-- Tab & Collection Selector -->
+        <div class="selectors-container">
+            <!-- Claude Tab Selector -->
+            <div class="tab-selector">
+                <label>Claude Tab:</label>
+                <select id="tab-select" onchange="onTabChanged()">
+                    <option value="">-- No focused tabs --</option>
+                </select>
+            </div>
+
+            <!-- Collection Selector -->
+            <div class="collection-selector">
+                <label>Collection (optional):</label>
+                <select id="collection-select" onchange="onCollectionChanged()">
+                    <option value="">-- No collection --</option>
+                </select>
+            </div>
+        </div>
+
         <div class="input-controls">
             <span id="char-count" class="char-count">0 characters</span>
             <button id="send-btn" onclick="sendPrompt()" disabled>Send</button>
@@ -281,7 +369,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
     <script>
         const vscode = acquireVsCodeApi();
         
-        // Load persisted state
         const previousState = vscode.getState() || {
             focusedTabs: [],
             currentTabId: null,
@@ -290,11 +377,14 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         
         let focusedTabs = previousState.focusedTabs;
         let currentTabId = previousState.currentTabId;
+        let currentCollectionId = null;
+        let collections = [];
         let conversations = previousState.conversations;
         let isWaitingResponse = false;
         
         const elements = {
-            status: document.getElementById('status'),
+            statusDot: document.getElementById('status-dot'),
+            statusText: document.getElementById('status-text'),
             startBtn: document.getElementById('start-btn'),
             stopBtn: document.getElementById('stop-btn'),
             restartBtn: document.getElementById('restart-btn'),
@@ -305,18 +395,18 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             charCount: document.getElementById('char-count')
         };
 
-        // Persist state helper
         function saveState() {
             vscode.setState({
                 focusedTabs: focusedTabs,
                 currentTabId: currentTabId,
+                currentCollectionId: currentCollectionId,
                 conversations: conversations
             });
         }
 
-        // Server controls
         function startServer() {
-            vscode.postMessage({ type: 'startServer' });
+            // Gọi command để mở form nhập port
+            vscode.postMessage({ type: 'connectToPort' });
         }
 
         function stopServer() {
@@ -327,23 +417,29 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             vscode.postMessage({ type: 'restartServer' });
         }
 
-        function updateServerStatus(isRunning) {
+        function openCollections() {
+            vscode.postMessage({ type: 'openCollections' });
+        }
+
+        function updateServerStatus(isRunning, port) {
+            const displayPort = port || 3031;
             if (isRunning) {
-                elements.status.className = 'status running';
-                elements.status.textContent = 'Server running on ws://localhost:3031';
-                elements.startBtn.disabled = true;
+                elements.statusDot.className = 'status-dot running';
+                elements.statusText.textContent = 'Server: ws://localhost:' + displayPort;
+                elements.startBtn.disabled = false;
+                elements.startBtn.textContent = 'Change Port';
                 elements.stopBtn.disabled = false;
                 elements.restartBtn.disabled = false;
             } else {
-                elements.status.className = 'status stopped';
-                elements.status.textContent = 'Server stopped';
+                elements.statusDot.className = 'status-dot';
+                elements.statusText.textContent = 'Server: Not started';
                 elements.startBtn.disabled = false;
+                elements.startBtn.textContent = 'Start Server';
                 elements.stopBtn.disabled = true;
                 elements.restartBtn.disabled = true;
             }
         }
 
-        // Tab management
         function updateTabList(tabs) {
             focusedTabs = tabs || [];
             saveState();
@@ -359,15 +455,13 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             focusedTabs.forEach(tab => {
                 const option = document.createElement('option');
                 option.value = tab.tabId;
-                option.textContent = \`\${tab.containerName} - \${tab.title.substring(0, 30)}\`;
+                option.textContent = tab.containerName + ' - ' + tab.title.substring(0, 30);
                 elements.tabSelect.appendChild(option);
             });
 
-            // Restore previously selected tab if exists
             if (currentTabId && focusedTabs.find(t => t.tabId === currentTabId)) {
                 elements.tabSelect.value = currentTabId;
             } else if (focusedTabs.length > 0) {
-                // Auto-select first tab
                 currentTabId = focusedTabs[0].tabId;
                 elements.tabSelect.value = currentTabId;
                 saveState();
@@ -391,7 +485,35 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             updateSendButtonState();
         }
 
-        // Message handling
+        function updateCollectionsList(newCollections) {
+            collections = newCollections || [];
+            
+            const collectionSelect = document.getElementById('collection-select');
+            if (!collectionSelect) return;
+            
+            collectionSelect.innerHTML = '<option value="">-- No collection --</option>';
+
+            collections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.id;
+                option.textContent = collection.name + ' (' + collection.fileCount + ' files)';
+                collectionSelect.appendChild(option);
+            });
+
+            if (currentCollectionId && collections.find(c => c.id === currentCollectionId)) {
+                collectionSelect.value = currentCollectionId;
+            }
+        }
+
+        function onCollectionChanged() {
+            const collectionSelect = document.getElementById('collection-select');
+            if (!collectionSelect) return;
+            
+            const selectedCollectionId = collectionSelect.value;
+            currentCollectionId = selectedCollectionId || null;
+            saveState();
+        }
+
         function sendPrompt() {
             const prompt = elements.promptInput.value.trim();
             if (!prompt || !currentTabId || isWaitingResponse) return;
@@ -401,7 +523,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
             const requestId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
-            // Add user message
             const userMessage = {
                 role: 'user',
                 content: prompt,
@@ -415,16 +536,15 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             saveState();
             renderMessages();
 
-            // Clear input
             elements.promptInput.value = '';
             updateCharCount();
 
-            // Send to backend
             vscode.postMessage({
                 type: 'sendPrompt',
                 requestId: requestId,
                 tabId: currentTabId,
-                prompt: prompt
+                prompt: prompt,
+                collectionId: currentCollectionId
             });
 
             addLoadingMessage();
@@ -434,16 +554,15 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message assistant';
             loadingDiv.id = 'loading-message';
-            loadingDiv.innerHTML = \`
-                <div class="message-header">
-                    <span class="message-role">Claude AI</span>
-                    <span class="message-time">Thinking...</span>
-                </div>
-                <div class="message-content">
-                    <span class="loading"></span>
-                    Waiting for response...
-                </div>
-            \`;
+            loadingDiv.innerHTML = '' +
+                '<div class="message-header">' +
+                    '<span class="message-role">Claude AI</span>' +
+                    '<span class="message-time">Thinking...</span>' +
+                '</div>' +
+                '<div class="message-content">' +
+                    '<span class="loading"></span>' +
+                    'Waiting for response...' +
+                '</div>';
             elements.messages.appendChild(loadingDiv);
             elements.messages.scrollTop = elements.messages.scrollHeight;
         }
@@ -466,7 +585,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             elements.messages.innerHTML = '';
             currentConversation.forEach(msg => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = \`message \${msg.role}\`;
+                messageDiv.className = 'message ' + msg.role;
 
                 const roleText = msg.role === 'user' ? 'You' : 
                                msg.role === 'assistant' ? 'Claude AI' : 
@@ -474,25 +593,23 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
                 const timeStr = formatTime(msg.timestamp);
 
-                let contentHTML = \`<div class="message-content">\${escapeHtml(msg.content)}</div>\`;
+                let contentHTML = '<div class="message-content">' + escapeHtml(msg.content) + '</div>';
                 
                 if (msg.role === 'error' && msg.errorType) {
-                    contentHTML = \`
-                        <div class="message-content">
-                            <span class="error-type">\${msg.errorType}</span>
-                            <br><br>
-                            \${escapeHtml(msg.content)}
-                        </div>
-                    \`;
+                    contentHTML = '' +
+                        '<div class="message-content">' +
+                            '<span class="error-type">' + msg.errorType + '</span>' +
+                            '<br><br>' +
+                            escapeHtml(msg.content) +
+                        '</div>';
                 }
 
-                messageDiv.innerHTML = \`
-                    <div class="message-header">
-                        <span class="message-role">\${roleText}</span>
-                        <span class="message-time">\${timeStr}</span>
-                    </div>
-                    \${contentHTML}
-                \`;
+                messageDiv.innerHTML = '' +
+                    '<div class="message-header">' +
+                        '<span class="message-role">' + roleText + '</span>' +
+                        '<span class="message-time">' + timeStr + '</span>' +
+                    '</div>' +
+                    contentHTML;
 
                 elements.messages.appendChild(messageDiv);
             });
@@ -514,7 +631,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             return div.innerHTML;
         }
 
-        // Input handling
         function handleKeyPress(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
@@ -526,7 +642,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
         function updateCharCount() {
             const count = elements.promptInput.value.length;
-            elements.charCount.textContent = \`\${count} characters\`;
+            elements.charCount.textContent = count + ' characters';
             updateSendButtonState();
         }
 
@@ -536,13 +652,13 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             elements.sendBtn.disabled = !hasText || !hasTab || isWaitingResponse;
         }
 
-        // Message handling from extension
         window.addEventListener('message', event => {
             const message = event.data;
+            console.log('[Webview] Received message:', message); // DEBUG
 
             switch (message.type) {
                 case 'serverStatusUpdate':
-                    updateServerStatus(message.isRunning);
+                    updateServerStatus(message.isRunning, message.port);
                     break;
 
                 case 'focusedTabsUpdate':
@@ -580,25 +696,24 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                     break;
                     
                 case 'restoreState':
-                    // Extension is telling us to restore state
                     if (message.state) {
                         focusedTabs = message.state.focusedTabs || [];
                         updateTabList(focusedTabs);
                     }
                     break;
+                case 'collectionsUpdate':
+                    updateCollectionsList(message.collections);
+                    break;
             }
         });
 
-        // Initialize on load
         updateCharCount();
         updateSendButtonState();
         
-        // Restore UI from persisted state
         if (focusedTabs.length > 0) {
             updateTabList(focusedTabs);
         }
         
-        // Request current state from extension
         vscode.postMessage({ type: 'requestState' });
     </script>
 </body>

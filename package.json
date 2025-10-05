@@ -2,7 +2,7 @@
   "name": "orbit-ai",
   "displayName": "OrbitAI - AI Coding Assistant",
   "description": "Context-aware AI coding assistant powered by Claude. Features code understanding, bug fixing, refactoring, testing, and more.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "khanhromvn",
   "license": "MIT",
   "repository": {
@@ -48,6 +48,10 @@
           "type": "webview",
           "id": "websocketView",
           "name": "Chat"
+        },
+        {
+          "id": "orbit-ai-collections",
+          "name": "Collections"
         }
       ]
     },
@@ -100,8 +104,60 @@
         "icon": "$(comment)"
       },
       {
-        "command": "orbit-ai.showContext",
-        "title": "OrbitAI: Show Context (Debug)"
+        "command": "orbit-ai.addFilesToCollection",
+        "title": "Add Files to Collection"
+      },
+      {
+        "command": "orbit-ai.removeFilesFromCollection",
+        "title": "Remove Files from Collection"
+      },
+      {
+        "command": "orbit-ai.collection.toggleFileSelection",
+        "title": "Toggle File Selection"
+      },
+      {
+        "command": "orbit-ai.collection.selectAllFiles",
+        "title": "Select All Files"
+      },
+      {
+        "command": "orbit-ai.collection.deselectAllFiles",
+        "title": "Deselect All Files"
+      },
+      {
+        "command": "orbit-ai.collection.selectAllFilesInFolder",
+        "title": "Select All Files in Folder",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "orbit-ai.collection.unselectAllFilesInFolder",
+        "title": "Unselect All Files in Folder",
+        "icon": "$(close-all)"
+      },
+      {
+        "command": "orbit-ai.collection.confirmFileManagement",
+        "title": "Confirm Selection"
+      },
+      {
+        "command": "orbit-ai.collection.cancelFileManagement",
+        "title": "Cancel"
+      },
+      {
+        "command": "orbit-ai.collection.searchFiles",
+        "title": "Search Files",
+        "icon": "$(search)"
+      },
+      {
+        "command": "orbit-ai.collection.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "orbit-ai.showServerPort",
+        "title": "OrbitAI: Show Server Port Info"
+      },
+      {
+        "command": "orbit-ai.connectToPort",
+        "title": "OrbitAI: Connect to Specific Port"
       }
     ],
     "menus": {
@@ -145,6 +201,26 @@
         {
           "command": "orbit-ai.chat",
           "group": "4_custom"
+        },
+        {
+          "command": "orbit-ai.addFilesToCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "orbit-ai.removeFilesFromCollection",
+          "when": "view == orbit-ai-collections && viewItem == collection",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "orbit-ai.collection.selectAllFilesInFolder",
+          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
+          "group": "inline@1"
+        },
+        {
+          "command": "orbit-ai.collection.unselectAllFilesInFolder",
+          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
+          "group": "inline@2"
         }
       ],
       "commandPalette": [

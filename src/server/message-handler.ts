@@ -19,7 +19,6 @@ export class MessageHandler {
   async handle(data: WebSocketMessage, ws: WebSocket): Promise<void> {
     switch (data.type) {
       case "browserExtensionConnected":
-        console.log("[OrbitAI] ✅ Firefox extension connected");
         break;
 
       case "focusedTabsUpdate":
@@ -36,20 +35,12 @@ export class MessageHandler {
   }
 
   private async handleFocusedTabsUpdate(data: any): Promise<void> {
-    console.log("[OrbitAI] 🎯 Focused tabs update:", data.data?.length || 0);
-
     const tabs: FocusedTab[] = data.data || [];
     this.conversationStore.setFocusedTabs(tabs);
     this.onFocusedTabsUpdate(tabs);
   }
 
   private async handlePromptResponse(data: PromptResponseData): Promise<void> {
-    console.log("[OrbitAI] 💬 Prompt response:", {
-      success: data.success,
-      tabId: data.tabId,
-      hasResponse: !!data.response,
-    });
-
     const tabId = data.tabId;
 
     if (data.success && data.response) {
