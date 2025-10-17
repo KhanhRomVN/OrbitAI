@@ -9,6 +9,7 @@ import { ServerCommands } from "./commands/server-commands";
 import { AICommands } from "./commands/ai-commands";
 import { CodeEditor } from "./editor/code-editor";
 import { PromptBuilder } from "./prompts/prompt-builder";
+import { CollectionService } from "./services/collection-service";
 
 let server: WebSocketServer;
 let provider: EnhancedWebviewProvider;
@@ -25,6 +26,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const promptBuilder = new PromptBuilder();
   conversationStore = new ConversationStore(context);
   const codeEditor = new CodeEditor();
+  const collectionService = new CollectionService();
 
   // Initialize WebSocket server với port mặc định (chưa start)
   server = new WebSocketServer(defaultPort);
@@ -70,20 +72,18 @@ export async function activate(context: vscode.ExtensionContext) {
       tabId: number,
       prompt: string,
       requestId: string,
-      systemPrompt?: string
+      collectionContent?: string
     ) => {
-      // Callback to send prompt to Claude
       server.sendToAllClients({
         type: "sendPrompt",
         requestId,
         tabId,
         prompt,
-        systemPrompt,
       });
-    }
+    },
+    collectionService
   );
 
-  // Lưu provider vào global để dùng trong ServerCommands
   (global as any).webviewProvider = provider;
 
   context.subscriptions.push(

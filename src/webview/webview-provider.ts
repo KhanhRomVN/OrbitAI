@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { getWebviewHtml } from "./webview-html";
 import { ConversationStore } from "../storage/conversation-store";
 import { FocusedTab } from "../types/interfaces";
+import { CollectionService } from "../services/collection-service";
 
 export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "websocketView";
@@ -15,8 +16,10 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
     private readonly onSendPrompt: (
       tabId: number,
       prompt: string,
-      requestId: string
-    ) => void
+      requestId: string,
+      collectionContent?: string
+    ) => void,
+    private readonly collectionService: CollectionService
   ) {}
 
   public getView(): vscode.WebviewView | undefined {
@@ -49,6 +52,16 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
         ...data,
       });
     }
+  }
+
+  public async sendCollectionsList(): Promise<void> {
+    if (!this._view) return;
+
+    const collections = await this.collectionService.getCollections();
+    this._view.webview.postMessage({
+      type: "collectionsUpdate",
+      data: collections,
+    });
   }
 
   public resolveWebviewView(
@@ -143,6 +156,15 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       case "requestState":
         this.restoreState();
         break;
+
+      // 🆕 Collection management
+      case "requestCollections":
+        this.sendCollectionsList();
+        break;
+
+      case "selectCollection":
+        this.handleSelectCollection(data);
+        break;
     }
   }
 
@@ -156,11 +178,31 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       timestamp: Date.now(),
     });
 
+    // 🆕 Kiểm tra có collection được chọn không
+    let finalPrompt = prompt;
+    const selectedCollectionId =
+      this.conversationStore.getSelectedCollection(tabId);
+
+    if (selectedCollectionId) {
+      const collectionContent =
+        await this.collectionService.getCollectionContent(selectedCollectionId);
+
+      if (collectionContent) {
+        const formattedContent =
+          this.collectionService.formatCollectionForPrompt(collectionContent);
+        finalPrompt = formattedContent + prompt; // Đặt collection content trước user prompt
+
+        console.log(
+          `[ZenChat] Added collection "${collectionContent.collectionName}" to prompt (${collectionContent.fileCount} files)`
+        );
+      }
+    }
+
     // Build prompt with system prompt
     let systemPrompt: string | undefined;
     try {
       const builtPrompt = await this.promptBuilder.buildPrompt(
-        prompt,
+        finalPrompt,
         undefined
       );
       systemPrompt = builtPrompt.systemPrompt;
@@ -168,8 +210,8 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       console.error("Failed to build system prompt:", error);
     }
 
-    // Send prompt
-    this.onSendPrompt(tabId, prompt, requestId);
+    // Send prompt (với collection content đã được kèm theo)
+    this.onSendPrompt(tabId, finalPrompt, requestId);
   }
 
   private handleGetConversation(data: any): void {
@@ -179,5 +221,17 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       tabId: data.tabId,
       conversation: conversation,
     });
+  }
+
+  // 🆕 Xử lý khi user chọn collection
+  private handleSelectCollection(data: any): void {
+    const { tabId, collectionId } = data;
+    this.conversationStore.setSelectedCollection(tabId, collectionId);
+
+    console.log(
+      `[ZenChat] Collection selected for tab ${tabId}: ${
+        collectionId || "None"
+      }`
+    );
   }
 }

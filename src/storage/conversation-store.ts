@@ -5,6 +5,7 @@ import { ConversationMessage, FocusedTab } from "../types/interfaces";
 export class ConversationStore {
   private conversationsByTab = new Map<number, ConversationMessage[]>();
   private focusedTabs: FocusedTab[] = [];
+  private selectedCollections = new Map<number, string | null>(); // 🆕 Lưu collectionId cho từng tab
   private context: vscode.ExtensionContext;
 
   constructor(context: vscode.ExtensionContext) {
@@ -40,13 +41,25 @@ export class ConversationStore {
     return this.focusedTabs;
   }
 
+  // 🆕 Collection management
+  setSelectedCollection(tabId: number, collectionId: string | null): void {
+    this.selectedCollections.set(tabId, collectionId);
+    this.saveState();
+  }
+
+  getSelectedCollection(tabId: number): string | null {
+    return this.selectedCollections.get(tabId) || null;
+  }
+
   // Persistence
   private saveState(): void {
     // Convert Map to array for serialization
     const conversations = Array.from(this.conversationsByTab.entries());
+    const collections = Array.from(this.selectedCollections.entries()); // 🆕
 
     this.context.globalState.update("conversations", conversations);
     this.context.globalState.update("focusedTabs", this.focusedTabs);
+    this.context.globalState.update("selectedCollections", collections); // 🆕
   }
 
   private loadState(): void {
@@ -62,5 +75,11 @@ export class ConversationStore {
       "focusedTabs",
       []
     );
+
+    // 🆕 Load selected collections
+    const savedCollections = this.context.globalState.get<
+      [number, string | null][]
+    >("selectedCollections", []);
+    this.selectedCollections = new Map(savedCollections);
   }
 }

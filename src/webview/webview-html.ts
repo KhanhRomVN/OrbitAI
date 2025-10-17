@@ -185,19 +185,28 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             border-color: var(--vscode-focusBorder);
         }
 
-        /* ===== TAB SELECTOR (Moved below input) ===== */
-        .tab-selector {
+        /* ===== SELECTORS CONTAINER ===== */
+        .selectors-container {
             margin-bottom: 8px;
+            display: flex;
+            gap: 8px;
         }
 
-        .tab-selector label {
+        .tab-selector,
+        .collection-selector {
+            flex: 1;
+        }
+
+        .tab-selector label,
+        .collection-selector label {
             display: block;
             font-size: 11px;
             margin-bottom: 4px;
             color: var(--vscode-descriptionForeground);
         }
 
-        .tab-selector select {
+        .tab-selector select,
+        .collection-selector select {
             width: 100%;
             padding: 6px;
             background: var(--vscode-input-background);
@@ -207,8 +216,20 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             font-size: 12px;
         }
 
-        .selectors-container {
-            margin-bottom: 8px;
+        .collection-selector select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 🆕 Collection badge */
+        .collection-badge {
+            display: inline-block;
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 4px;
         }
 
         .input-controls {
@@ -278,7 +299,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         </div>
     </div>
 
-    <!-- Input Area (with Tab Selector moved here) -->
+    <!-- Input Area -->
     <div class="input-area">
         <textarea 
             id="prompt-input" 
@@ -286,12 +307,21 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             onkeydown="handleKeyPress(event)"
         ></textarea>
 
-        <!-- Tab Selector -->
+        <!-- Selectors Container (Tab + Collection) -->
         <div class="selectors-container">
+            <!-- Tab Selector -->
             <div class="tab-selector">
                 <label>Claude Tab:</label>
                 <select id="tab-select" onchange="onTabChanged()">
                     <option value="">-- No focused tabs --</option>
+                </select>
+            </div>
+
+            <!-- 🆕 Collection Selector -->
+            <div class="collection-selector">
+                <label>Code Collection:</label>
+                <select id="collection-select" onchange="onCollectionChanged()" disabled>
+                    <option value="">-- No collection --</option>
                 </select>
             </div>
         </div>
@@ -308,12 +338,16 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         const previousState = vscode.getState() || {
             focusedTabs: [],
             currentTabId: null,
-            conversations: {}
+            conversations: {},
+            collections: [],  // 🆕
+            selectedCollectionId: null  // 🆕
         };
         
         let focusedTabs = previousState.focusedTabs;
         let currentTabId = previousState.currentTabId;
         let conversations = previousState.conversations;
+        let collections = previousState.collections;  // 🆕
+        let selectedCollectionId = previousState.selectedCollectionId;  // 🆕
         let isWaitingResponse = false;
         
         const elements = {
@@ -323,6 +357,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             stopBtn: document.getElementById('stop-btn'),
             restartBtn: document.getElementById('restart-btn'),
             tabSelect: document.getElementById('tab-select'),
+            collectionSelect: document.getElementById('collection-select'),  // 🆕
             messages: document.getElementById('messages'),
             promptInput: document.getElementById('prompt-input'),
             sendBtn: document.getElementById('send-btn'),
@@ -333,12 +368,13 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             vscode.setState({
                 focusedTabs: focusedTabs,
                 currentTabId: currentTabId,
-                conversations: conversations
+                conversations: conversations,
+                collections: collections,  // 🆕
+                selectedCollectionId: selectedCollectionId  // 🆕
             });
         }
 
         function startServer() {
-            // Gọi command để mở form nhập port
             vscode.postMessage({ type: 'connectToPort' });
         }
 
@@ -378,6 +414,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             if (focusedTabs.length === 0) {
                 elements.tabSelect.innerHTML = '<option value="">-- No focused tabs --</option>';
                 elements.sendBtn.disabled = true;
+                elements.collectionSelect.disabled = true;  // 🆕 Disable collection khi không có tab
                 return;
             }
 
@@ -396,8 +433,33 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                 saveState();
             }
 
+            elements.collectionSelect.disabled = false;  // 🆕 Enable collection khi có tab
             renderMessages();
             updateSendButtonState();
+        }
+
+        // 🆕 Cập nhật danh sách collections
+        function updateCollectionsList(collectionsData) {
+            collections = collectionsData || [];
+            saveState();
+
+            elements.collectionSelect.innerHTML = '<option value="">-- No collection --</option>';
+
+            if (collections.length === 0) {
+                return;
+            }
+
+            collections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection.id;
+                option.textContent = collection.name + ' (' + collection.fileCount + ' files)';
+                elements.collectionSelect.appendChild(option);
+            });
+
+            // Restore selected collection nếu có
+            if (selectedCollectionId) {
+                elements.collectionSelect.value = selectedCollectionId;
+            }
         }
 
         function onTabChanged() {
@@ -412,6 +474,23 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                 renderMessages();
             }
             updateSendButtonState();
+        }
+
+        // 🆕 Xử lý khi chọn collection
+        function onCollectionChanged() {
+            selectedCollectionId = elements.collectionSelect.value || null;
+            saveState();
+
+            // Gửi thông báo về extension
+            if (currentTabId) {
+                vscode.postMessage({
+                    type: 'selectCollection',
+                    tabId: currentTabId,
+                    collectionId: selectedCollectionId
+                });
+            }
+
+            console.log('Collection selected:', selectedCollectionId);
         }
 
         function sendPrompt() {
@@ -453,9 +532,21 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message assistant';
             loadingDiv.id = 'loading-message';
+            
+            // 🆕 Thêm collection badge nếu có collection được chọn
+            let collectionBadge = '';
+            if (selectedCollectionId) {
+                const selectedCollection = collections.find(c => c.id === selectedCollectionId);
+                if (selectedCollection) {
+                    collectionBadge = '<span class="collection-badge">📁 ' + 
+                                    selectedCollection.name + 
+                                    ' (' + selectedCollection.fileCount + ' files)</span>';
+                }
+            }
+            
             loadingDiv.innerHTML = '' +
                 '<div class="message-header">' +
-                    '<span class="message-role">Claude AI</span>' +
+                    '<span class="message-role">Claude AI' + collectionBadge + '</span>' +
                     '<span class="message-time">Thinking...</span>' +
                 '</div>' +
                 '<div class="message-content">' +
@@ -563,6 +654,11 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                     updateTabList(message.data);
                     break;
 
+                // 🆕 Nhận danh sách collections
+                case 'collectionsUpdate':
+                    updateCollectionsList(message.data);
+                    break;
+
                 case 'conversationHistory':
                     if (message.tabId === currentTabId) {
                         conversations[currentTabId] = message.conversation || [];
@@ -609,7 +705,9 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             updateTabList(focusedTabs);
         }
         
+        // 🆕 Request collections khi webview load
         vscode.postMessage({ type: 'requestState' });
+        vscode.postMessage({ type: 'requestCollections' });
     </script>
 </body>
 </html>`;
