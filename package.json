@@ -1,13 +1,13 @@
 {
-  "name": "orbit-ai",
-  "displayName": "OrbitAI - AI Coding Assistant",
+  "name": "zenchat",
+  "displayName": "ZenChat - AI Coding Assistant",
   "description": "Context-aware AI coding assistant powered by Claude. Features code understanding, bug fixing, refactoring, testing, and more.",
   "version": "1.0.0",
   "publisher": "khanhromvn",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/khanhromvn/orbit-ai.git"
+    "url": "https://github.com/khanhromvn/zenchat.git"
   },
   "icon": "images/icon.png",
   "engines": {
@@ -36,334 +36,181 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "orbit-ai-container",
-          "title": "OrbitAI",
+          "id": "zenchat-container",
+          "title": "ZenChat",
           "icon": "$(robot)"
         }
       ]
     },
     "views": {
-      "orbit-ai-container": [
+      "zenchat-container": [
         {
           "type": "webview",
           "id": "websocketView",
           "name": "Chat"
-        },
-        {
-          "id": "orbit-ai-collections",
-          "name": "Collections"
         }
       ]
     },
     "commands": [
       {
-        "command": "orbit-ai.startServer",
-        "title": "OrbitAI: Start Server"
+        "command": "zenchat.startServer",
+        "title": "ZenChat: Start Server"
       },
       {
-        "command": "orbit-ai.stopServer",
-        "title": "OrbitAI: Stop Server"
+        "command": "zenchat.stopServer",
+        "title": "ZenChat: Stop Server"
       },
       {
-        "command": "orbit-ai.restartServer",
-        "title": "OrbitAI: Restart Server"
+        "command": "zenchat.restartServer",
+        "title": "ZenChat: Restart Server"
       },
       {
-        "command": "orbit-ai.explainCode",
-        "title": "OrbitAI: Explain Code",
+        "command": "zenchat.explainCode",
+        "title": "ZenChat: Explain Code",
         "icon": "$(question)"
       },
       {
-        "command": "orbit-ai.fixCode",
-        "title": "OrbitAI: Fix Code",
+        "command": "zenchat.fixCode",
+        "title": "ZenChat: Fix Code",
         "icon": "$(wrench)"
       },
       {
-        "command": "orbit-ai.refactorCode",
-        "title": "OrbitAI: Refactor Code",
+        "command": "zenchat.refactorCode",
+        "title": "ZenChat: Refactor Code",
         "icon": "$(rocket)"
       },
       {
-        "command": "orbit-ai.generateTests",
-        "title": "OrbitAI: Generate Tests",
+        "command": "zenchat.generateTests",
+        "title": "ZenChat: Generate Tests",
         "icon": "$(beaker)"
       },
       {
-        "command": "orbit-ai.addDocumentation",
-        "title": "OrbitAI: Add Documentation",
+        "command": "zenchat.addDocumentation",
+        "title": "ZenChat: Add Documentation",
         "icon": "$(book)"
       },
       {
-        "command": "orbit-ai.editCode",
-        "title": "OrbitAI: Edit Code",
+        "command": "zenchat.editCode",
+        "title": "ZenChat: Edit Code",
         "icon": "$(edit)"
       },
       {
-        "command": "orbit-ai.chat",
-        "title": "OrbitAI: Chat",
+        "command": "zenchat.chat",
+        "title": "ZenChat: Chat",
         "icon": "$(comment)"
       },
       {
-        "command": "orbit-ai.addFilesToCollection",
-        "title": "Add Files to Collection"
+        "command": "zenchat.showServerPort",
+        "title": "ZenChat: Show Server Port Info"
       },
       {
-        "command": "orbit-ai.removeFilesFromCollection",
-        "title": "Remove Files from Collection"
-      },
-      {
-        "command": "orbit-ai.collection.toggleFileSelection",
-        "title": "Toggle File Selection"
-      },
-      {
-        "command": "orbit-ai.collection.selectAllFiles",
-        "title": "Select All Files"
-      },
-      {
-        "command": "orbit-ai.collection.deselectAllFiles",
-        "title": "Deselect All Files"
-      },
-      {
-        "command": "orbit-ai.collection.selectAllFilesInFolder",
-        "title": "Select All Files in Folder",
-        "icon": "$(check-all)"
-      },
-      {
-        "command": "orbit-ai.collection.unselectAllFilesInFolder",
-        "title": "Unselect All Files in Folder",
-        "icon": "$(close-all)"
-      },
-      {
-        "command": "orbit-ai.collection.confirmFileManagement",
-        "title": "Confirm Selection"
-      },
-      {
-        "command": "orbit-ai.collection.cancelFileManagement",
-        "title": "Cancel"
-      },
-      {
-        "command": "orbit-ai.collection.searchFiles",
-        "title": "Search Files",
-        "icon": "$(search)"
-      },
-      {
-        "command": "orbit-ai.collection.clearSearch",
-        "title": "Clear Search",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "orbit-ai.showServerPort",
-        "title": "OrbitAI: Show Server Port Info"
-      },
-      {
-        "command": "orbit-ai.connectToPort",
-        "title": "OrbitAI: Connect to Specific Port"
-      },
-      {
-        "command": "orbit-ai.createCollection",
-        "title": "OrbitAI: Create Collection",
-        "icon": "$(add)"
-      },
-      {
-        "command": "orbit-ai.refreshCollectionView",
-        "title": "OrbitAI: Refresh Collections",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "orbit-ai.showCollectionMenu",
-        "title": "Collection Menu",
-        "icon": "$(kebab-vertical)"
-      },
-      {
-        "command": "orbit-ai.expandCollection",
-        "title": "Expand Collection",
-        "icon": "$(expand-all)"
-      },
-      {
-        "command": "orbit-ai.collapseCollection",
-        "title": "Collapse Collection",
-        "icon": "$(collapse-all)"
-      },
-      {
-        "command": "orbit-ai.copyCollectionContent",
-        "title": "Copy Collection Content",
-        "icon": "$(copy)"
-      },
-      {
-        "command": "orbit-ai.renameCollection",
-        "title": "Rename Collection",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "orbit-ai.deleteCollection",
-        "title": "Delete Collection",
-        "icon": "$(trash)"
+        "command": "zenchat.connectToPort",
+        "title": "ZenChat: Connect to Specific Port"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "submenu": "orbit-ai.editorMenu",
+          "submenu": "zenchat.editorMenu",
           "group": "1_modification"
         }
       ],
-      "view/title": [
+      "zenchat.editorMenu": [
         {
-          "command": "orbit-ai.createCollection",
-          "when": "view == orbit-ai-collections",
-          "group": "navigation@1",
-          "icon": "$(add)"
-        },
-        {
-          "command": "orbit-ai.refreshCollectionView",
-          "when": "view == orbit-ai-collections",
-          "group": "navigation@2",
-          "icon": "$(refresh)"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "orbit-ai.showCollectionMenu",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "inline@1"
-        },
-        {
-          "command": "orbit-ai.expandCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "inline@2"
-        },
-        {
-          "command": "orbit-ai.copyCollectionContent",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "inline@3"
-        },
-        {
-          "command": "orbit-ai.renameCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "1_modification@1"
-        },
-        {
-          "command": "orbit-ai.deleteCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "1_modification@2"
-        },
-        {
-          "command": "orbit-ai.addFilesToCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "2_files@1"
-        },
-        {
-          "command": "orbit-ai.removeFilesFromCollection",
-          "when": "view == orbit-ai-collections && viewItem == collection",
-          "group": "2_files@2"
-        },
-        {
-          "command": "orbit-ai.collection.selectAllFilesInFolder",
-          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
-          "group": "inline@1"
-        },
-        {
-          "command": "orbit-ai.collection.unselectAllFilesInFolder",
-          "when": "view == orbit-ai-collections && viewItem == fileManagementDirectory",
-          "group": "inline@2"
-        }
-      ],
-      "orbit-ai.editorMenu": [
-        {
-          "command": "orbit-ai.explainCode",
+          "command": "zenchat.explainCode",
           "when": "editorHasSelection",
           "group": "1_understand"
         },
         {
-          "command": "orbit-ai.fixCode",
+          "command": "zenchat.fixCode",
           "when": "editorHasSelection",
           "group": "2_improve"
         },
         {
-          "command": "orbit-ai.refactorCode",
+          "command": "zenchat.refactorCode",
           "when": "editorHasSelection",
           "group": "2_improve"
         },
         {
-          "command": "orbit-ai.generateTests",
+          "command": "zenchat.generateTests",
           "when": "editorHasSelection",
           "group": "3_generate"
         },
         {
-          "command": "orbit-ai.addDocumentation",
+          "command": "zenchat.addDocumentation",
           "when": "editorHasSelection",
           "group": "3_generate"
         },
         {
-          "command": "orbit-ai.editCode",
+          "command": "zenchat.editCode",
           "when": "editorHasSelection",
           "group": "4_custom"
         },
         {
-          "command": "orbit-ai.chat",
+          "command": "zenchat.chat",
           "group": "4_custom"
         }
       ],
       "commandPalette": [
         {
-          "command": "orbit-ai.explainCode",
+          "command": "zenchat.explainCode",
           "when": "editorHasSelection"
         },
         {
-          "command": "orbit-ai.fixCode",
+          "command": "zenchat.fixCode",
           "when": "editorHasSelection"
         },
         {
-          "command": "orbit-ai.refactorCode",
+          "command": "zenchat.refactorCode",
           "when": "editorHasSelection"
         },
         {
-          "command": "orbit-ai.generateTests",
+          "command": "zenchat.generateTests",
           "when": "editorHasSelection"
         },
         {
-          "command": "orbit-ai.addDocumentation",
+          "command": "zenchat.addDocumentation",
           "when": "editorHasSelection"
         },
         {
-          "command": "orbit-ai.editCode",
+          "command": "zenchat.editCode",
           "when": "editorHasSelection"
         }
       ]
     },
     "submenus": [
       {
-        "id": "orbit-ai.editorMenu",
-        "label": "OrbitAI"
+        "id": "zenchat.editorMenu",
+        "label": "ZenChat"
       }
     ],
     "keybindings": [
       {
-        "command": "orbit-ai.chat",
+        "command": "zenchat.chat",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l"
       },
       {
-        "command": "orbit-ai.explainCode",
+        "command": "zenchat.explainCode",
         "key": "ctrl+shift+e",
         "mac": "cmd+shift+e",
         "when": "editorHasSelection"
       },
       {
-        "command": "orbit-ai.fixCode",
+        "command": "zenchat.fixCode",
         "key": "ctrl+shift+f",
         "mac": "cmd+shift+f",
         "when": "editorHasSelection"
       },
       {
-        "command": "orbit-ai.editCode",
+        "command": "zenchat.editCode",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
         "when": "editorHasSelection"
       }
     ],
     "configuration": {
-      "title": "OrbitAI",
+      "title": "ZenChat",
       "properties": {
         "orbitAI.maxContextTokens": {
           "type": "number",

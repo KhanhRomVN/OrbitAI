@@ -10,8 +10,7 @@ export class AICommands {
     private onSendPrompt: (
       tabId: number,
       prompt: string,
-      requestId: string,
-      collectionId: string | null
+      requestId: string
     ) => void
   ) {}
 
@@ -42,7 +41,7 @@ export class AICommands {
       .substr(2, 9)}`;
 
     // Send prompt
-    this.onSendPrompt(tabId, fullPrompt, requestId, null);
+    this.onSendPrompt(tabId, fullPrompt, requestId);
 
     // Show webview
     vscode.commands.executeCommand("websocketView.focus");
@@ -81,7 +80,7 @@ export class AICommands {
       .toString(36)
       .substr(2, 9)}`;
 
-    this.onSendPrompt(tabId, fullPrompt, requestId, null);
+    this.onSendPrompt(tabId, fullPrompt, requestId);
     vscode.commands.executeCommand("websocketView.focus");
   }
 

@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { CollectionService } from "../domain/collection/services/CollectionService";
 
 export interface BuiltPrompt {
   systemPrompt: string;
@@ -8,16 +7,14 @@ export interface BuiltPrompt {
 }
 
 export class PromptBuilder {
-  constructor(private readonly collectionService: CollectionService) {}
+  constructor() {}
 
   async buildPrompt(
-    collectionId: string | null,
     userMessage: string,
     currentFileContent?: string
   ): Promise<BuiltPrompt> {
     const systemPrompt = this.buildSystemPrompt();
     const userPrompt = await this.buildUserPrompt(
-      collectionId,
       userMessage,
       currentFileContent
     );
@@ -30,7 +27,7 @@ export class PromptBuilder {
   }
 
   private buildSystemPrompt(): string {
-    const basePrompt = `You are Claude, an expert AI coding assistant created by Anthropic, integrated into VS Code through OrbitAI extension.
+    const basePrompt = `You are Claude, an expert AI coding assistant created by Anthropic, integrated into VS Code through ZenChat extension.
 
 CORE IDENTITY & CAPABILITIES:
 - Expert in multiple programming languages, frameworks, and best practices
@@ -81,7 +78,6 @@ Remember: You have access to the full context of selected collections, so use th
   }
 
   private async buildUserPrompt(
-    collectionId: string | null,
     userMessage: string,
     currentFileContent?: string
   ): Promise<string> {
@@ -92,40 +88,7 @@ Remember: You have access to the full context of selected collections, so use th
       contextContent += `CURRENT FILE CONTENT:\n\`\`\`\n${currentFileContent}\n\`\`\`\n\n`;
     }
 
-    // Add collection content if specified
-    if (collectionId) {
-      try {
-        const collection =
-          this.collectionService.getCollectionById(collectionId);
-        contextContent += await this.buildCollectionContent(collection);
-      } catch (error) {
-        console.warn("Failed to load collection:", error);
-      }
-    }
-
     return `${contextContent}USER REQUEST: ${userMessage}`;
-  }
-
-  private async buildCollectionContent(collection: any): Promise<string> {
-    let content = `COLLECTION: ${collection.name}\n`;
-    content += `Files: ${collection.fileCount}\n\n`;
-
-    for (const fileUri of collection.files) {
-      try {
-        const uri = vscode.Uri.parse(fileUri);
-        const document = await vscode.workspace.openTextDocument(uri);
-        const fileName = uri.fsPath.split(/[/\\]/).pop() || "unknown";
-        const fileExtension = fileName.split(".").pop() || "";
-
-        content += `FILE: ${fileName}\n`;
-        content += `PATH: ${uri.fsPath}\n`;
-        content += `CONTENT:\n\`\`\`${fileExtension}\n${document.getText()}\n\`\`\`\n\n`;
-      } catch (error) {
-        content += `FILE: ${fileUri} (Unable to read)\n\n`;
-      }
-    }
-
-    return content;
   }
 
   private estimateTokens(text: string): number {

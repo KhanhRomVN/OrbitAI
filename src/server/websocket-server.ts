@@ -36,7 +36,7 @@ export class WebSocketServer {
   start(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.isRunning) {
-        vscode.window.showWarningMessage("OrbitAI: Server is already running");
+        vscode.window.showWarningMessage("ZenChat: Server is already running");
         resolve();
         return;
       }
@@ -49,7 +49,7 @@ export class WebSocketServer {
 
         this.wss.on("listening", () => {
           vscode.window.showInformationMessage(
-            `OrbitAI: Server started on port ${this.port}`
+            `ZenChat: Server started on port ${this.port}`
           );
           this.isRunning = true;
 
@@ -72,34 +72,34 @@ export class WebSocketServer {
                 this.messageHandler(data, ws);
               }
             } catch (error) {
-              console.error("[OrbitAI] ❌ Failed to parse message:", error);
+              console.error("[ZenChat] ❌ Failed to parse message:", error);
             }
           });
 
-          ws.on("close", () => console.log("[OrbitAI] 🔌 Client disconnected"));
+          ws.on("close", () => console.log("[ZenChat] 🔌 Client disconnected"));
           ws.on("error", (error) =>
-            console.error("[OrbitAI] ❌ WebSocket error:", error)
+            console.error("[ZenChat] ❌ WebSocket error:", error)
           );
 
           ws.send(
             JSON.stringify({
               type: "connected",
-              message: "Welcome to OrbitAI",
+              message: "Welcome to ZenChat",
             })
           );
         });
 
         this.wss.on("error", (error) => {
-          console.error("[OrbitAI] ❌ Server error:", error);
+          console.error("[ZenChat] ❌ Server error:", error);
           vscode.window.showErrorMessage(
-            `OrbitAI: Server error - ${error.message}`
+            `ZenChat: Server error - ${error.message}`
           );
           this.isRunning = false;
           reject(error);
         });
       } catch (error) {
-        console.error("[OrbitAI] ❌ Failed to start server:", error);
-        vscode.window.showErrorMessage("OrbitAI: Failed to start server");
+        console.error("[ZenChat] ❌ Failed to start server:", error);
+        vscode.window.showErrorMessage("ZenChat: Failed to start server");
         this.isRunning = false;
         reject(error);
       }
@@ -109,13 +109,13 @@ export class WebSocketServer {
   stop(): Promise<void> {
     return new Promise((resolve) => {
       if (!this.isRunning || !this.wss) {
-        vscode.window.showWarningMessage("OrbitAI: Server is not running");
+        vscode.window.showWarningMessage("ZenChat: Server is not running");
         resolve();
         return;
       }
 
       this.wss.close(() => {
-        vscode.window.showInformationMessage("OrbitAI: Server stopped");
+        vscode.window.showInformationMessage("ZenChat: Server stopped");
         this.isRunning = false;
         this.wss = null;
         resolve();

@@ -8,25 +8,11 @@ import { CommandRegistry } from "./commands/command-registry";
 import { ServerCommands } from "./commands/server-commands";
 import { AICommands } from "./commands/ai-commands";
 import { CodeEditor } from "./editor/code-editor";
-import { PortManager } from "./server/port-manager"; // 🆕 Import PortManager
-
-// Import collection system
-import {
-  ServiceContainer,
-  ICollectionTreeService,
-} from "./infrastructure/di/ServiceContainer";
-import { CollectionService } from "./domain/collection/services/CollectionService";
-import { CollectionProvider } from "./providers/CollectionProvider";
-import { registerCollectionCommands } from "./commands/collection-commands";
 import { PromptBuilder } from "./prompts/prompt-builder";
-import { registerFileManagementCommands } from "./commands/collection/FileManagementCommands";
-import { registerViewCommands } from "./commands/collection/ViewCommands";
 
 let server: WebSocketServer;
 let provider: EnhancedWebviewProvider;
 let conversationStore: ConversationStore;
-let collectionService: CollectionService;
-let collectionProvider: CollectionProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   // Lưu context vào global để dùng trong ServerCommands
@@ -35,47 +21,10 @@ export async function activate(context: vscode.ExtensionContext) {
   // KHÔNG tự động tìm port, để người dùng tự nhập
   const defaultPort = 3031; // Port mặc định để khởi tạo server object
 
-  // Initialize Dependency Injection Container
-  const container = ServiceContainer.getInstance();
-  container.initialize(context);
-
-  // Resolve services from container
-  collectionService = container.resolve<CollectionService>("CollectionService");
-  const collectionTreeService = container.resolve<ICollectionTreeService>(
-    "ICollectionTreeService"
-  );
-
-  // Initialize CollectionProvider with proper service
-  collectionProvider = new CollectionProvider(collectionTreeService);
-
-  // Register UI services in container
-  container.registerUIServices(collectionProvider);
-
-  // Register collection tree view TRƯỚC KHI đăng ký commands
-  const collectionTreeView = vscode.window.createTreeView(
-    "orbit-ai-collections",
-    {
-      treeDataProvider: collectionProvider,
-      showCollapseAll: true,
-      canSelectMany: false,
-    }
-  );
-
-  context.subscriptions.push(collectionTreeView);
-
-  // Register collection commands SAU KHI tree view đã sẵn sàng
-  registerCollectionCommands(context);
-
-  // Register file management commands
-  registerFileManagementCommands(context);
-
-  // Register view commands
-  registerViewCommands(context);
-
   // Initialize core managers
-  const promptBuilder = new PromptBuilder(collectionService);
+  const promptBuilder = new PromptBuilder();
   conversationStore = new ConversationStore(context);
-  const codeEditor = new CodeEditor(); // 🆕 Khởi tạo CodeEditor
+  const codeEditor = new CodeEditor();
 
   // Initialize WebSocket server với port mặc định (chưa start)
   server = new WebSocketServer(defaultPort);
@@ -121,8 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
       tabId: number,
       prompt: string,
       requestId: string,
-      collectionId: string | null,
-      systemPrompt?: string // 🆕 Thêm parameter
+      systemPrompt?: string
     ) => {
       // Callback to send prompt to Claude
       server.sendToAllClients({
@@ -130,8 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
         requestId,
         tabId,
         prompt,
-        collectionId,
-        systemPrompt, // 🆕 Gửi kèm system prompt
+        systemPrompt,
       });
     }
   );
@@ -150,18 +97,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const aiCommands = new AICommands(
     promptBuilder,
     conversationStore,
-    (
-      tabId: number, // 🆕 Thêm type annotation
-      prompt: string, // 🆕 Thêm type annotation
-      requestId: string, // 🆕 Thêm type annotation
-      collectionId: string | null // 🆕 Thêm type annotation
-    ) => {
+    (tabId: number, prompt: string, requestId: string) => {
       server.sendToAllClients({
         type: "sendPrompt",
         requestId,
         tabId,
         prompt,
-        collectionId,
       });
     }
   );
@@ -175,38 +116,6 @@ export async function activate(context: vscode.ExtensionContext) {
   setTimeout(() => {
     provider.updateServerStatus(false, defaultPort);
   }, 200);
-
-  // Update collections list in webview with increased delay
-  setTimeout(() => {
-    const allCollections = collectionService.getAllCollections();
-    if (provider.updateCollectionsList) {
-      provider.updateCollectionsList(allCollections);
-    }
-  }, 500); // Increased delay to ensure webview is fully initialized
-
-  // Listen for collection changes
-  const refreshCollections = () => {
-    collectionProvider.refresh();
-
-    // Update collections list in webview
-    if (provider && provider.updateCollectionsList) {
-      // Delay nhỏ để đảm bảo collection đã được lưu vào storage
-      setTimeout(() => {
-        const allCollections = collectionService.getAllCollections();
-        provider.updateCollectionsList(allCollections);
-      }, 300);
-    }
-  };
-
-  // Refresh collections when changes occur
-  context.subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument(() => {
-      refreshCollections();
-    })
-  );
-
-  // Expose collectionService globally for webview
-  (global as any).collectionService = collectionService;
 
   // Cleanup
   context.subscriptions.push({

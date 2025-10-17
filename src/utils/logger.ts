@@ -62,7 +62,7 @@ export class Logger {
 
     // Show critical errors as notifications
     if (level === LogLevel.CRITICAL) {
-      vscode.window.showErrorMessage(`[OrbitAI Critical] ${message}`);
+      vscode.window.showErrorMessage(`[ZenChat Critical] ${message}`);
     }
   }
 

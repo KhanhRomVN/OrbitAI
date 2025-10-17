@@ -12,38 +12,38 @@ export class CommandRegistry {
   registerAll(context: vscode.ExtensionContext): void {
     // Server control commands
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.startServer", () =>
+      vscode.commands.registerCommand("zenchat.startServer", () =>
         this.serverCommands.startServer()
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.stopServer", () =>
+      vscode.commands.registerCommand("zenchat.stopServer", () =>
         this.serverCommands.stopServer()
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.restartServer", () =>
+      vscode.commands.registerCommand("zenchat.restartServer", () =>
         this.serverCommands.restartServer()
       )
     );
 
     // AI commands
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.explainCode", () =>
+      vscode.commands.registerCommand("zenchat.explainCode", () =>
         this.aiCommands.handleCommand("explain", "Explain this code")
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.fixCode", () =>
+      vscode.commands.registerCommand("zenchat.fixCode", () =>
         this.aiCommands.handleCommand("fix", "Fix the bugs in this code")
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.refactorCode", () =>
+      vscode.commands.registerCommand("zenchat.refactorCode", () =>
         this.aiCommands.handleCommand(
           "refactor",
           "Refactor this code for better quality"
@@ -52,7 +52,7 @@ export class CommandRegistry {
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.generateTests", () =>
+      vscode.commands.registerCommand("zenchat.generateTests", () =>
         this.aiCommands.handleCommand(
           "test",
           "Generate comprehensive tests for this code"
@@ -61,7 +61,7 @@ export class CommandRegistry {
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.addDocumentation", () =>
+      vscode.commands.registerCommand("zenchat.addDocumentation", () =>
         this.aiCommands.handleCommand(
           "document",
           "Add comprehensive documentation to this code"
@@ -70,25 +70,25 @@ export class CommandRegistry {
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.editCode", () =>
+      vscode.commands.registerCommand("zenchat.editCode", () =>
         this.aiCommands.handleEditCommand()
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.chat", () =>
+      vscode.commands.registerCommand("zenchat.chat", () =>
         this.aiCommands.handleChatCommand()
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.showServerPort", () =>
+      vscode.commands.registerCommand("zenchat.showServerPort", () =>
         this.serverCommands.showServerPort()
       )
     );
 
     context.subscriptions.push(
-      vscode.commands.registerCommand("orbit-ai.connectToPort", () =>
+      vscode.commands.registerCommand("zenchat.connectToPort", () =>
         this.serverCommands.connectToPort()
       )
     );

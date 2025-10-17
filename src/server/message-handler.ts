@@ -30,7 +30,7 @@ export class MessageHandler {
         break;
 
       default:
-        console.log("[OrbitAI] ⚠️ Unknown message type:", data.type);
+        console.log("[ZenChat] ⚠️ Unknown message type:", data.type);
     }
   }
 

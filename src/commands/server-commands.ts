@@ -14,7 +14,7 @@ export class ServerCommands {
       prompt: "Enter WebSocket server port",
       placeHolder: "3031",
       value: "3031",
-      title: "Start OrbitAI Server",
+      title: "Start ZenChat Server",
       validateInput: (value) => {
         const port = parseInt(value);
         if (isNaN(port) || port < 1024 || port > 65535) {
@@ -33,16 +33,16 @@ export class ServerCommands {
     // Kiểm tra port có available không
     const portInfo = await PortManager.checkSpecificPort(targetPort);
 
-    if (!portInfo.isAvailable && !portInfo.isOrbitAI) {
+    if (!portInfo.isAvailable && !portInfo.isZenChat) {
       vscode.window.showErrorMessage(
         `Port ${targetPort} is already in use by another service`
       );
       return;
     }
 
-    if (portInfo.isOrbitAI) {
+    if (portInfo.isZenChat) {
       vscode.window.showInformationMessage(
-        `OrbitAI: Already connected to server on port ${targetPort}`
+        `ZenChat: Already connected to server on port ${targetPort}`
       );
 
       // Cập nhật UI - Delay để đảm bảo webview đã sẵn sàng
@@ -89,16 +89,16 @@ export class ServerCommands {
   async showServerPort(): Promise<void> {
     const port = this.server.getPort();
     const isRunning = this.server.getStatus().isRunning;
-    const activeOrbitAIPorts = await PortManager.getAllActiveOrbitAIPorts();
+    const activeZenChatPorts = await PortManager.getAllActiveZenChatPorts();
 
     const status = isRunning ? "Running" : "Stopped";
     const portsInfo =
-      activeOrbitAIPorts.length > 0 ? activeOrbitAIPorts.join(", ") : "None";
+      activeZenChatPorts.length > 0 ? activeZenChatPorts.join(", ") : "None";
 
     vscode.window.showInformationMessage(
-      `OrbitAI Server Info:\n` +
+      `ZenChat Server Info:\n` +
         `Current Port: ${port} (${status})\n` +
-        `All Active OrbitAI Ports: ${portsInfo}`
+        `All Active ZenChat Ports: ${portsInfo}`
     );
   }
 
@@ -109,7 +109,7 @@ export class ServerCommands {
     const portInput = await vscode.window.showInputBox({
       prompt: "Enter WebSocket server port to connect",
       placeHolder: "3031",
-      title: "Connect to OrbitAI Server",
+      title: "Connect to ZenChat Server",
       validateInput: (value) => {
         const port = parseInt(value);
         if (isNaN(port) || port < 1024 || port > 65535) {
@@ -125,11 +125,11 @@ export class ServerCommands {
 
     const targetPort = parseInt(portInput);
 
-    // Kiểm tra port có đang chạy OrbitAI server không
+    // Kiểm tra port có đang chạy ZenChat server không
     const portInfo = await PortManager.checkSpecificPort(targetPort);
 
-    if (portInfo.isOrbitAI) {
-      // Có OrbitAI server đang chạy → kết nối vào
+    if (portInfo.isZenChat) {
+      // Có ZenChat server đang chạy → kết nối vào
       this.server.setPort(targetPort);
 
       // Cập nhật workspace state
@@ -142,7 +142,7 @@ export class ServerCommands {
       }
 
       vscode.window.showInformationMessage(
-        `✓ Connected to existing OrbitAI server on port ${targetPort}`
+        `✓ Connected to existing ZenChat server on port ${targetPort}`
       );
     } else if (portInfo.isAvailable) {
       // Port available → hỏi có muốn start server mới không
@@ -169,9 +169,9 @@ export class ServerCommands {
         await context.workspaceState.update("orbitai.serverPort", targetPort);
       }
     } else {
-      // Port đang được dùng bởi service khác (không phải OrbitAI)
+      // Port đang được dùng bởi service khác (không phải ZenChat)
       vscode.window.showErrorMessage(
-        `Port ${targetPort} is already in use by another service (not OrbitAI)`
+        `Port ${targetPort} is already in use by another service (not ZenChat)`
       );
     }
   }

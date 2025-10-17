@@ -1,12 +1,12 @@
-# OrbitAI - AI Coding Assistant
+# ZenChat - AI Coding Assistant
 
 <div align="center">
 
-![OrbitAI Logo](images/icon.png)
+![ZenChat Logo](images/icon.png)
 
 **Context-aware AI coding assistant powered by Claude, seamlessly integrated into VS Code**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/KhanhRomVN/OrbitAI)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/KhanhRomVN/ZenChat)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.50.0+-007ACC.svg)](https://code.visualstudio.com/)
 
@@ -18,9 +18,9 @@
 
 ## 🌟 Overview
 
-OrbitAI transforms your VS Code into an intelligent coding workspace by connecting with Claude AI through a seamless WebSocket bridge. Organize your codebase into collections, get context-aware assistance, and maintain conversations across multiple Claude tabs - all without leaving your editor.
+ZenChat transforms your VS Code into an intelligent coding workspace by connecting with Claude AI through a seamless WebSocket bridge. Organize your codebase into collections, get context-aware assistance, and maintain conversations across multiple Claude tabs - all without leaving your editor.
 
-### Why OrbitAI?
+### Why ZenChat?
 
 - 🎯 **Context-Aware**: Feed entire collections of files to Claude for better understanding
 - 💬 **Persistent Conversations**: Maintain conversation history across sessions
@@ -79,7 +79,7 @@ OrbitAI transforms your VS Code into an intelligent coding workspace by connecti
 
 ### Install from VSIX
 
-1. Download the latest `.vsix` file from [Releases](https://github.com/KhanhRomVN/OrbitAI/releases)
+1. Download the latest `.vsix` file from [Releases](https://github.com/KhanhRomVN/ZenChat/releases)
 2. In VS Code: `Extensions` → `...` → `Install from VSIX`
 3. Select the downloaded file
 4. Reload VS Code
@@ -94,8 +94,8 @@ Coming soon to VS Code Marketplace
 
 ```bash
 # Clone repository
-git clone https://github.com/KhanhRomVN/OrbitAI.git
-cd OrbitAI
+git clone https://github.com/KhanhRomVN/ZenChat.git
+cd ZenChat
 
 # Install dependencies
 npm install
@@ -116,7 +116,7 @@ npm run package
 ```
 1. Install Claude browser extension
 2. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-3. Run: "OrbitAI: Start Server"
+3. Run: "ZenChat: Start Server"
 4. Enter port number (default: 3031)
 5. Connection status appears in sidebar
 ```
@@ -124,7 +124,7 @@ npm run package
 ### 2. Create Your First Collection
 
 ```
-1. Open OrbitAI sidebar
+1. Open ZenChat sidebar
 2. Click "Collections" tab
 3. Click "+" to create collection
 4. Add files from your workspace
@@ -135,7 +135,7 @@ npm run package
 
 ```
 1. Select code in editor
-2. Right-click → OrbitAI → Choose action
+2. Right-click → ZenChat → Choose action
    OR
    Use keyboard shortcuts:
    - Ctrl+Shift+E: Explain Code
@@ -153,15 +153,15 @@ npm run package
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
-| `OrbitAI: Start Server` | - | Start WebSocket server |
-| `OrbitAI: Stop Server` | - | Stop WebSocket server |
-| `OrbitAI: Explain Code` | `Ctrl+Shift+E` | Explain selected code |
-| `OrbitAI: Fix Code` | `Ctrl+Shift+F` | Fix bugs in code |
-| `OrbitAI: Refactor Code` | - | Improve code quality |
-| `OrbitAI: Generate Tests` | - | Create test cases |
-| `OrbitAI: Add Documentation` | - | Generate comments |
-| `OrbitAI: Edit Code` | `Ctrl+Shift+K` | Custom code edits |
-| `OrbitAI: Chat` | `Ctrl+Shift+L` | Open chat panel |
+| `ZenChat: Start Server` | - | Start WebSocket server |
+| `ZenChat: Stop Server` | - | Stop WebSocket server |
+| `ZenChat: Explain Code` | `Ctrl+Shift+E` | Explain selected code |
+| `ZenChat: Fix Code` | `Ctrl+Shift+F` | Fix bugs in code |
+| `ZenChat: Refactor Code` | - | Improve code quality |
+| `ZenChat: Generate Tests` | - | Create test cases |
+| `ZenChat: Add Documentation` | - | Generate comments |
+| `ZenChat: Edit Code` | `Ctrl+Shift+K` | Custom code edits |
+| `ZenChat: Chat` | `Ctrl+Shift+L` | Open chat panel |
 
 ### Collection Management
 
@@ -212,7 +212,7 @@ function newCode() {
 </REPLACE>
 ```
 
-OrbitAI automatically:
+ZenChat automatically:
 1. Detects SEARCH/REPLACE blocks
 2. Finds exact matches in your code
 3. Applies changes with confirmation
@@ -243,11 +243,11 @@ Customize in `Preferences: Open Keyboard Shortcuts (JSON)`:
 ```json
 {
   "key": "ctrl+shift+l",
-  "command": "orbit-ai.chat"
+  "command": "zenchat.chat"
 },
 {
   "key": "ctrl+shift+e",
-  "command": "orbit-ai.explainCode",
+  "command": "zenchat.explainCode",
   "when": "editorHasSelection"
 }
 ```
@@ -257,7 +257,7 @@ Customize in `Preferences: Open Keyboard Shortcuts (JSON)`:
 ## 🏗️ Architecture
 
 ```
-OrbitAI Extension
+ZenChat Extension
 ├── WebSocket Server (Port 3031-3040)
 │   └── Communicates with Claude Browser Extension
 ├── Collection Management
@@ -293,8 +293,8 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ```bash
 # Clone and install
-git clone https://github.com/KhanhRomVN/OrbitAI.git
-cd OrbitAI
+git clone https://github.com/KhanhRomVN/ZenChat.git
+cd ZenChat
 npm install
 
 # Run in development mode
@@ -333,7 +333,7 @@ Solution:
 **Problem**: Port already in use
 ```
 Solution:
-1. Use "OrbitAI: Connect to Port" command
+1. Use "ZenChat: Connect to Port" command
 2. Enter a different port (3031-3040)
 3. Or stop other services using the port
 ```
@@ -356,7 +356,7 @@ Solution:
 Solution:
 1. Check WebSocket connection status
 2. Verify Claude browser extension is active
-3. Check for errors in Output panel (OrbitAI)
+3. Check for errors in Output panel (ZenChat)
 4. Restart WebSocket server
 ```
 
@@ -423,16 +423,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- 📖 [Documentation](https://github.com/KhanhRomVN/OrbitAI/wiki)
-- 🐛 [Issue Tracker](https://github.com/KhanhRomVN/OrbitAI/issues)
-- 💬 [Discussions](https://github.com/KhanhRomVN/OrbitAI/discussions)
+- 📖 [Documentation](https://github.com/KhanhRomVN/ZenChat/wiki)
+- 🐛 [Issue Tracker](https://github.com/KhanhRomVN/ZenChat/issues)
+- 💬 [Discussions](https://github.com/KhanhRomVN/ZenChat/discussions)
 - 📧 [Email Support](mailto:khanhromvn@gmail.com)
 
 ---
 
 <div align="center">
 
-**If you find OrbitAI useful, please consider giving it a ⭐ on GitHub!**
+**If you find ZenChat useful, please consider giving it a ⭐ on GitHub!**
 
 Made with ❤️ by KhanhRomVN
 

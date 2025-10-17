@@ -7,10 +7,10 @@ export class PortManager {
   private static readonly BASE_PORT = 3031;
   private static readonly MAX_PORT = 3040; // Giới hạn range 3031-3040
   private static readonly PORT_CHECK_TIMEOUT = 1000;
-  private static readonly ORBITAI_HANDSHAKE = "OrbitAI-Handshake";
+  private static readonly ORBITAI_HANDSHAKE = "ZenChat-Handshake";
 
   /**
-   * Tìm port available hoặc port đang chạy OrbitAI server
+   * Tìm port available hoặc port đang chạy ZenChat server
    * Returns: { port: number, isExisting: boolean }
    */
   static async findOrReusePort(
@@ -19,8 +19,8 @@ export class PortManager {
     // Kiểm tra port đã lưu trong workspace
     const storedPort = context.workspaceState.get<number>("orbitai.serverPort");
     if (storedPort) {
-      const existingCheck = await this.checkOrbitAIServer(storedPort);
-      if (existingCheck.isOrbitAI) {
+      const existingCheck = await this.checkZenChatServer(storedPort);
+      if (existingCheck.isZenChat) {
         return { port: storedPort, isExisting: true };
       }
     }
@@ -31,9 +31,9 @@ export class PortManager {
       currentPort <= this.MAX_PORT;
       currentPort++
     ) {
-      const existingCheck = await this.checkOrbitAIServer(currentPort);
+      const existingCheck = await this.checkZenChatServer(currentPort);
 
-      if (existingCheck.isOrbitAI) {
+      if (existingCheck.isZenChat) {
         await context.workspaceState.update("orbitai.serverPort", currentPort);
         return { port: currentPort, isExisting: true };
       }
@@ -50,16 +50,16 @@ export class PortManager {
   }
 
   /**
-   * Kiểm tra port có phải OrbitAI server hay không
+   * Kiểm tra port có phải ZenChat server hay không
    */
-  private static async checkOrbitAIServer(
+  private static async checkZenChatServer(
     port: number
-  ): Promise<{ isOrbitAI: boolean; isAvailable: boolean }> {
+  ): Promise<{ isZenChat: boolean; isAvailable: boolean }> {
     // Bước 1: Kiểm tra port có đang được sử dụng không
     const isPortOpen = !(await this.isPortAvailable(port));
 
     if (!isPortOpen) {
-      return { isOrbitAI: false, isAvailable: true };
+      return { isZenChat: false, isAvailable: true };
     }
 
     // Bước 2: Thử kết nối WebSocket và kiểm tra handshake
@@ -68,7 +68,7 @@ export class PortManager {
       let isResolved = false;
 
       const cleanup = (result: {
-        isOrbitAI: boolean;
+        isZenChat: boolean;
         isAvailable: boolean;
       }) => {
         if (!isResolved) {
@@ -83,29 +83,29 @@ export class PortManager {
 
       ws.on("open", () => {
         // Gửi handshake message
-        ws.send(JSON.stringify({ type: "ping", source: "OrbitAI-Extension" }));
+        ws.send(JSON.stringify({ type: "ping", source: "ZenChat-Extension" }));
       });
 
       ws.on("message", (data: WebSocket.Data) => {
         try {
           const message = JSON.parse(data.toString());
-          // Kiểm tra response có phải từ OrbitAI server không
+          // Kiểm tra response có phải từ ZenChat server không
           if (message.type === "connected" || message.type === "pong") {
-            cleanup({ isOrbitAI: true, isAvailable: false });
+            cleanup({ isZenChat: true, isAvailable: false });
           }
         } catch (error) {
-          cleanup({ isOrbitAI: false, isAvailable: false });
+          cleanup({ isZenChat: false, isAvailable: false });
         }
       });
 
       ws.on("error", () => {
-        cleanup({ isOrbitAI: false, isAvailable: false });
+        cleanup({ isZenChat: false, isAvailable: false });
       });
 
       // Timeout sau 1 giây
       setTimeout(() => {
         if (!isResolved) {
-          cleanup({ isOrbitAI: false, isAvailable: false });
+          cleanup({ isZenChat: false, isAvailable: false });
         }
       }, this.PORT_CHECK_TIMEOUT);
     });
@@ -148,14 +148,14 @@ export class PortManager {
   }
 
   /**
-   * Lấy tất cả các port đang chạy OrbitAI (để debug)
+   * Lấy tất cả các port đang chạy ZenChat (để debug)
    */
-  static async getAllActiveOrbitAIPorts(): Promise<number[]> {
+  static async getAllActiveZenChatPorts(): Promise<number[]> {
     const activePorts: number[] = [];
 
     for (let port = this.BASE_PORT; port <= this.MAX_PORT; port++) {
-      const check = await this.checkOrbitAIServer(port);
-      if (check.isOrbitAI) {
+      const check = await this.checkZenChatServer(port);
+      if (check.isZenChat) {
         activePorts.push(port);
       }
     }
@@ -169,7 +169,7 @@ export class PortManager {
    */
   static async checkSpecificPort(
     port: number
-  ): Promise<{ isOrbitAI: boolean; isAvailable: boolean }> {
-    return this.checkOrbitAIServer(port);
+  ): Promise<{ isZenChat: boolean; isAvailable: boolean }> {
+    return this.checkZenChatServer(port);
   }
 }

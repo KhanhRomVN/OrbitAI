@@ -8,7 +8,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OrbitAI Chat</title>
+    <title>ZenChat Chat</title>
     <style>
         * {
             margin: 0;
@@ -81,32 +81,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         .server-controls-compact button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-
-        /* ===== COLLECTION BUTTON ===== */
-        .toolbar {
-            padding: 8px 10px;
-            border-bottom: 1px solid var(--vscode-panel-border);
-            background-color: var(--vscode-editor-background);
-        }
-
-        .toolbar button {
-            width: 100%;
-            padding: 6px;
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .toolbar button:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
         }
 
         /* ===== CHAT AREA ===== */
@@ -237,27 +211,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             margin-bottom: 8px;
         }
 
-        .collection-selector {
-            margin-top: 8px;
-        }
-
-        .collection-selector label {
-            display: block;
-            font-size: 11px;
-            margin-bottom: 4px;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        .collection-selector select {
-            width: 100%;
-            padding: 6px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
         .input-controls {
             display: flex;
             justify-content: space-between;
@@ -318,14 +271,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         </div>
     </div>
 
-    <!-- Collection Management Button -->
-    <div class="toolbar">
-        <button onclick="openCollections()">
-            <span>📁</span>
-            <span>Manage Collections</span>
-        </button>
-    </div>
-
     <!-- Chat Messages -->
     <div class="chat-container">
         <div id="messages" class="messages">
@@ -341,21 +286,12 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             onkeydown="handleKeyPress(event)"
         ></textarea>
 
-        <!-- Tab & Collection Selector -->
+        <!-- Tab Selector -->
         <div class="selectors-container">
-            <!-- Claude Tab Selector -->
             <div class="tab-selector">
                 <label>Claude Tab:</label>
                 <select id="tab-select" onchange="onTabChanged()">
                     <option value="">-- No focused tabs --</option>
-                </select>
-            </div>
-
-            <!-- Collection Selector -->
-            <div class="collection-selector">
-                <label>Collection (optional):</label>
-                <select id="collection-select" onchange="onCollectionChanged()">
-                    <option value="">-- No collection --</option>
                 </select>
             </div>
         </div>
@@ -377,8 +313,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         
         let focusedTabs = previousState.focusedTabs;
         let currentTabId = previousState.currentTabId;
-        let currentCollectionId = null;
-        let collections = [];
         let conversations = previousState.conversations;
         let isWaitingResponse = false;
         
@@ -399,7 +333,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             vscode.setState({
                 focusedTabs: focusedTabs,
                 currentTabId: currentTabId,
-                currentCollectionId: currentCollectionId,
                 conversations: conversations
             });
         }
@@ -415,10 +348,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
         function restartServer() {
             vscode.postMessage({ type: 'restartServer' });
-        }
-
-        function openCollections() {
-            vscode.postMessage({ type: 'openCollections' });
         }
 
         function updateServerStatus(isRunning, port) {
@@ -485,35 +414,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             updateSendButtonState();
         }
 
-        function updateCollectionsList(newCollections) {
-            collections = newCollections || [];
-            
-            const collectionSelect = document.getElementById('collection-select');
-            if (!collectionSelect) return;
-            
-            collectionSelect.innerHTML = '<option value="">-- No collection --</option>';
-
-            collections.forEach(collection => {
-                const option = document.createElement('option');
-                option.value = collection.id;
-                option.textContent = collection.name + ' (' + collection.fileCount + ' files)';
-                collectionSelect.appendChild(option);
-            });
-
-            if (currentCollectionId && collections.find(c => c.id === currentCollectionId)) {
-                collectionSelect.value = currentCollectionId;
-            }
-        }
-
-        function onCollectionChanged() {
-            const collectionSelect = document.getElementById('collection-select');
-            if (!collectionSelect) return;
-            
-            const selectedCollectionId = collectionSelect.value;
-            currentCollectionId = selectedCollectionId || null;
-            saveState();
-        }
-
         function sendPrompt() {
             const prompt = elements.promptInput.value.trim();
             if (!prompt || !currentTabId || isWaitingResponse) return;
@@ -543,8 +443,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                 type: 'sendPrompt',
                 requestId: requestId,
                 tabId: currentTabId,
-                prompt: prompt,
-                collectionId: currentCollectionId
+                prompt: prompt
             });
 
             addLoadingMessage();
@@ -699,9 +598,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                         focusedTabs = message.state.focusedTabs || [];
                         updateTabList(focusedTabs);
                     }
-                    break;
-                case 'collectionsUpdate':
-                    updateCollectionsList(message.collections);
                     break;
             }
         });
