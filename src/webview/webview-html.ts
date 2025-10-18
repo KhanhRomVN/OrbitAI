@@ -286,9 +286,8 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             <span id="status-text" class="status-text">Server: Not connected</span>
         </div>
         <div class="server-controls-compact">
-            <button id="start-btn" onclick="startServer()">Connect</button>
+            <button id="start-btn" onclick="startServer()">Start</button>
             <button id="stop-btn" onclick="stopServer()" disabled>Stop</button>
-            <button id="restart-btn" onclick="restartServer()" disabled>Restart</button>
         </div>
     </div>
 
@@ -301,9 +300,9 @@ export function getWebviewHtml(webview: vscode.Webview): string {
 
     <!-- Input Area -->
     <div class="input-area">
-        <textarea 
-            id="prompt-input" 
-            placeholder="Type your message to Claude..."
+        <textarea
+            id="prompt-input"
+            placeholder="Type your message to DeepSeek..."
             onkeydown="handleKeyPress(event)"
         ></textarea>
 
@@ -311,7 +310,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
         <div class="selectors-container">
             <!-- Tab Selector -->
             <div class="tab-selector">
-                <label>Claude Tab:</label>
+                <label>Browser Tab:</label>
                 <select id="tab-select" onchange="onTabChanged()">
                     <option value="">-- No focused tabs --</option>
                 </select>
@@ -339,15 +338,16 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             focusedTabs: [],
             currentTabId: null,
             conversations: {},
-            collections: [],  // 🆕
-            selectedCollectionId: null  // 🆕
+            collections: [],
+            selectedCollectionId: null
         };
-        
-        let focusedTabs = previousState.focusedTabs;
-        let currentTabId = previousState.currentTabId;
-        let conversations = previousState.conversations;
-        let collections = previousState.collections;  // 🆕
-        let selectedCollectionId = previousState.selectedCollectionId;  // 🆕
+
+        let focusedTabs = [];
+        let currentTabId = null;
+        let conversations = {};
+        let collections = [];
+        let selectedCollectionId = null;
+
         let isWaitingResponse = false;
         
         const elements = {
@@ -355,9 +355,8 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             statusText: document.getElementById('status-text'),
             startBtn: document.getElementById('start-btn'),
             stopBtn: document.getElementById('stop-btn'),
-            restartBtn: document.getElementById('restart-btn'),
             tabSelect: document.getElementById('tab-select'),
-            collectionSelect: document.getElementById('collection-select'),  // 🆕
+            collectionSelect: document.getElementById('collection-select'),
             messages: document.getElementById('messages'),
             promptInput: document.getElementById('prompt-input'),
             sendBtn: document.getElementById('send-btn'),
@@ -382,10 +381,6 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             vscode.postMessage({ type: 'stopServer' });
         }
 
-        function restartServer() {
-            vscode.postMessage({ type: 'restartServer' });
-        }
-
         function updateServerStatus(isRunning, port) {
             const displayPort = port || 3031;
             if (isRunning) {
@@ -394,14 +389,12 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                 elements.startBtn.disabled = false;
                 elements.startBtn.textContent = 'Change Port';
                 elements.stopBtn.disabled = false;
-                elements.restartBtn.disabled = false;
             } else {
                 elements.statusDot.className = 'status-dot';
                 elements.statusText.textContent = 'Server: Not started';
                 elements.startBtn.disabled = false;
-                elements.startBtn.textContent = 'Start Server';
+                elements.startBtn.textContent = 'Start';
                 elements.stopBtn.disabled = true;
-                elements.restartBtn.disabled = true;
             }
         }
 
@@ -546,7 +539,7 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             
             loadingDiv.innerHTML = '' +
                 '<div class="message-header">' +
-                    '<span class="message-role">Claude AI' + collectionBadge + '</span>' +
+                    '<span class="message-role">DeepSeek AI' + collectionBadge + '</span>' +
                     '<span class="message-time">Thinking...</span>' +
                 '</div>' +
                 '<div class="message-content">' +
@@ -577,8 +570,8 @@ export function getWebviewHtml(webview: vscode.Webview): string {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'message ' + msg.role;
 
-                const roleText = msg.role === 'user' ? 'You' : 
-                               msg.role === 'assistant' ? 'Claude AI' : 
+                const roleText = msg.role === 'user' ? 'You' :
+                               msg.role === 'assistant' ? 'DeepSeek AI' :
                                'Error';
 
                 const timeStr = formatTime(msg.timestamp);
@@ -648,6 +641,18 @@ export function getWebviewHtml(webview: vscode.Webview): string {
             switch (message.type) {
                 case 'serverStatusUpdate':
                     updateServerStatus(message.isRunning, message.port);
+                    
+                    if (message.isRunning && previousState.focusedTabs.length > 0) {
+                        focusedTabs = previousState.focusedTabs;
+                        currentTabId = previousState.currentTabId;
+                        conversations = previousState.conversations;
+                        collections = previousState.collections;
+                        selectedCollectionId = previousState.selectedCollectionId;
+                        
+                        updateTabList(focusedTabs);
+                        updateCollectionsList(collections);
+                        renderMessages();
+                    }
                     break;
 
                 case 'focusedTabsUpdate':

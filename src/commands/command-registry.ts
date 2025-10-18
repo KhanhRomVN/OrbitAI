@@ -23,12 +23,6 @@ export class CommandRegistry {
       )
     );
 
-    context.subscriptions.push(
-      vscode.commands.registerCommand("zenchat.restartServer", () =>
-        this.serverCommands.restartServer()
-      )
-    );
-
     // AI commands
     context.subscriptions.push(
       vscode.commands.registerCommand("zenchat.explainCode", () =>

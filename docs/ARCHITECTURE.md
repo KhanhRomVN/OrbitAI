@@ -13,6 +13,7 @@ graph TB
  EventManager[Event Manager<br/>File/Selection Events]
  ConfigManager[Configuration Manager<br/>Settings]
  LanguageClient[Language Client<br/>LSP Integration]
+ WorkspaceIndexer[Workspace Indexer<br/>Auto-scan Project Files]
  end
  
  subgraph "COMMUNICATION"
@@ -24,8 +25,6 @@ graph TB
  
  subgraph "LOCAL RAG BACKEND"
  subgraph "API GATEWAY"
- AuthMiddleware[Auth Middleware<br/>API Key Validation]
- RateLimiter[Rate Limiter<br/>Request Throttling]
  RequestLogger[Request Logger]
  end
  
@@ -53,7 +52,7 @@ graph TB
  
  subgraph "GENERATION PIPELINE"
  PromptEngine[Prompt Engine<br/>Code-specific Templates]
- ChatOrchestrator[Chat Orchestrator<br/>Multi-LLM]
+ ChatOrchestrator[Chat Orchestrator<br/>Multi-LLM via WebSocket]
  StreamManager[Stream Manager<br/>Real-time Streaming]
  ResponseValidator[Response Validator<br/>Code Syntax]
  end
@@ -73,38 +72,17 @@ graph TB
  BackupVector[Backup Vector Store]
  end
  
- subgraph "METADATA & ANALYTICS"
- PostgresQL[(PostgreSQL<br/>Projects/Metadata)]
- ClickHouse[(ClickHouse<br/>Analytics/Logs)]
- Redis[(Redis Cloud<br/>Cache/Sessions)]
- end
- 
- subgraph "LLM PROVIDERS"
- OpenAI[OpenAI GPT-4]
- Anthropic[Claude 3]
- LocalLLM[Local LLMs<br/>Ollama]
- CodeLLM[Specialized Code LLMs]
- end
- 
- subgraph "OBSERVABILITY"
- Sentry[Sentry<br/>Error Tracking]
- Prometheus[Prometheus<br/>Metrics]
- Grafana[Grafana<br/>Dashboards]
- Loki[Loki<br/>Log Aggregation]
+ subgraph "METADATA & CACHE"
+ NeonPostgres[(Neon PostgreSQL<br/>Projects/Metadata)]
+ RedisCloud[(Redis Cloud<br/>Cache/Sessions)]
  end
  end
  
- subgraph "DEVELOPER TOOLS"
- subgraph "TESTING & QA"
- UnitTests[Unit Tests<br/>Jest/Pytest]
- IntegrationTests[Integration Tests]
- E2ETests[E2E Tests<br/>VS Code Test Runner]
- end
- 
- subgraph "DEVOPS"
- CI_CD[CI/CD Pipeline<br/>GitHub Actions]
- Docker[Docker Containerization]
- Monitoring[Health Monitoring]
+ subgraph "BROWSER CLAUDE INTEGRATION"
+ subgraph "WEBSOCKET BRIDGE"
+ BrowserExtension[Browser Extension<br/>Claude.ai Interface]
+ WebSocketBridge[WebSocket Bridge<br/>Local ↔ Browser]
+ ClaudeAPI[Claude API<br/>via Browser Session]
  end
  end
  
@@ -115,16 +93,20 @@ graph TB
  QuickAsk --> CommandRegistry
  CommandRegistry --> EventManager
  EventManager --> LanguageClient
+ EventManager --> WorkspaceIndexer
  ConfigManager --> MessageHandler
  MessageHandler --> WebSocketClient
  MessageHandler --> HTTPClient
  
- %% Backend Communication
- WebSocketClient --> AuthMiddleware
- HTTPClient --> AuthMiddleware
+ %% Workspace Auto-Indexing
+ WorkspaceIndexer --> RepoManager
+ 
+ %% Backend Communication (No Auth, No Rate Limit)
+ WebSocketClient --> RequestLogger
+ HTTPClient --> RequestLogger
  
  %% RAG Pipeline
- AuthMiddleware --> QueryAnalyzer
+ RequestLogger --> QueryAnalyzer
  QueryAnalyzer --> QueryExpander
  QueryExpander --> HybridRetriever
  
@@ -138,16 +120,19 @@ graph TB
  
  ContextBuilder --> PromptEngine
  PromptEngine --> ChatOrchestrator
- ChatOrchestrator --> OpenAI
- ChatOrchestrator --> Anthropic
- ChatOrchestrator --> LocalLLM
- ChatOrchestrator --> CodeLLM
- ChatOrchestrator --> StreamManager
+ 
+ %% WebSocket to Browser Claude
+ ChatOrchestrator --> WebSocketBridge
+ WebSocketBridge --> BrowserExtension
+ BrowserExtension --> ClaudeAPI
+ ClaudeAPI --> BrowserExtension
+ BrowserExtension --> WebSocketBridge
+ WebSocketBridge --> StreamManager
+ 
  StreamManager --> ResponseValidator
  ResponseValidator --> WebSocketClient
  
  %% Indexing Pipeline
- EventManager --> RepoManager
  RepoManager --> ASTParser
  ASTParser --> CodeChunker
  CodeChunker --> EmbeddingGenerator
@@ -156,29 +141,26 @@ graph TB
  IndexManager --> Qdrant
  
  %% Data Management
- ProjectManager --> PostgresQL
- CacheManager --> Redis
- SessionManager --> Redis
+ ProjectManager --> NeonPostgres
+ CacheManager --> RedisCloud
+ SessionManager --> RedisCloud
  
- %% Observability
- RequestLogger --> Loki
- AuthMiddleware --> Prometheus
- ChatOrchestrator --> Sentry
+ %% Logging
+ RequestLogger --> NeonPostgres
  
  style ChatPanel fill:#e1f5ff
  style CommandRegistry fill:#e1f5ff
  style WebSocketClient fill:#e1f5ff
- style AuthMiddleware fill:#fff4e1
+ style WorkspaceIndexer fill:#e1f5ff
+ style RequestLogger fill:#fff4e1
  style QueryAnalyzer fill:#fff4e1
  style HybridRetriever fill:#fff4e1
  style ChatOrchestrator fill:#fff4e1
  style ASTParser fill:#fff4e1
  style Pinecone fill:#e1ffe1
- style PostgresQL fill:#e1ffe1
- style Redis fill:#e1ffe1
- style OpenAI fill:#ffe1f0
- style Anthropic fill:#ffe1f0
- style LocalLLM fill:#ffe1f0
- style CodeLLM fill:#ffe1f0
- style Sentry fill:#ffebee
- style Prometheus fill:#ffebee
+ style Qdrant fill:#e1ffe1
+ style NeonPostgres fill:#e1ffe1
+ style RedisCloud fill:#e1ffe1
+ style BrowserExtension fill:#ffe1f0
+ style WebSocketBridge fill:#ffe1f0
+ style ClaudeAPI fill:#ffe1f0

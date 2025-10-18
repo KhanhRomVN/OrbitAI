@@ -4,6 +4,66 @@ import * as net from "net";
 import WebSocket from "ws";
 
 export class PortManager {
+  static async getPortWorkspace(
+    port: number,
+    _context: vscode.ExtensionContext
+  ): Promise<string | null> {
+    try {
+      // Thử connect để kiểm tra server có đang chạy không
+      const ws = new WebSocket(`ws://localhost:${port}`);
+
+      return new Promise((resolve) => {
+        let isResolved = false;
+
+        const cleanup = (result: string | null) => {
+          if (!isResolved) {
+            isResolved = true;
+            ws.removeAllListeners();
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.close();
+            }
+            resolve(result);
+          }
+        };
+
+        ws.on("open", () => {
+          // Yêu cầu workspace info từ server
+          ws.send(
+            JSON.stringify({
+              type: "getWorkspaceInfo",
+              source: "ZenChat-Extension",
+            })
+          );
+        });
+
+        ws.on("message", (data: WebSocket.Data) => {
+          try {
+            const message = JSON.parse(data.toString());
+            if (message.type === "workspaceInfo" && message.workspacePath) {
+              cleanup(message.workspacePath);
+            } else {
+              cleanup(null);
+            }
+          } catch (error) {
+            cleanup(null);
+          }
+        });
+
+        ws.on("error", () => {
+          cleanup(null);
+        });
+
+        setTimeout(() => {
+          if (!isResolved) {
+            cleanup(null);
+          }
+        }, this.PORT_CHECK_TIMEOUT);
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
   private static readonly BASE_PORT = 3031;
   private static readonly MAX_PORT = 3040; // Giới hạn range 3031-3040
   private static readonly PORT_CHECK_TIMEOUT = 1000;
@@ -129,7 +189,7 @@ export class PortManager {
         }
       };
 
-      server.once("error", (err: NodeJS.ErrnoException) => {
+      server.once("error", (_err: NodeJS.ErrnoException) => {
         cleanup(false); // Port đang được sử dụng
       });
 

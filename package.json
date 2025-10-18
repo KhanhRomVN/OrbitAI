@@ -1,7 +1,7 @@
 {
   "name": "zenchat",
   "displayName": "ZenChat - AI Coding Assistant",
-  "description": "Context-aware AI coding assistant powered by Claude. Features code understanding, bug fixing, refactoring, testing, and more.",
+  "description": "Context-aware AI coding assistant powered by DeepSeek. Features code understanding, bug fixing, refactoring, testing, and more.",
   "version": "1.0.1",
   "publisher": "khanhromvn",
   "license": "MIT",
@@ -51,6 +51,11 @@
           "type": "webview",
           "id": "websocketView",
           "name": "Chat"
+        },
+        {
+          "type": "webview",
+          "id": "zenchat.settingsView",
+          "name": "Settings"
         }
       ]
     },

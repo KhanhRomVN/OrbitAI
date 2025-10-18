@@ -125,6 +125,27 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
         });
       }, 100);
     }
+
+    // 🆕 Restore server status
+    const extensionContext = (global as any).extensionContext as
+      | vscode.ExtensionContext
+      | undefined;
+    const savedPort =
+      extensionContext?.workspaceState.get<number>("orbitai.serverPort") ||
+      3031;
+
+    // Lấy trạng thái server hiện tại từ WebSocketServer
+    const serverCommands = (global as any).serverCommands;
+    if (serverCommands) {
+      const status = serverCommands.server.getStatus();
+      setTimeout(() => {
+        this._view?.webview.postMessage({
+          type: "serverStatusUpdate",
+          isRunning: status.isRunning,
+          port: savedPort,
+        });
+      }, 150);
+    }
   }
 
   private handleWebviewMessage(data: any): void {
@@ -139,10 +160,6 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
 
       case "stopServer":
         vscode.commands.executeCommand("zenchat.stopServer");
-        break;
-
-      case "restartServer":
-        vscode.commands.executeCommand("zenchat.restartServer");
         break;
 
       case "sendPrompt":
@@ -178,24 +195,42 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       timestamp: Date.now(),
     });
 
-    // 🆕 Kiểm tra có collection được chọn không
+    // 🆕 Kiểm tra setting "Enable Context"
+    const extensionContext = (global as any).extensionContext as
+      | vscode.ExtensionContext
+      | undefined;
+    const enableContext =
+      extensionContext?.globalState.get<boolean>(
+        "zenchat.enableContext",
+        false
+      ) ?? false;
+
     let finalPrompt = prompt;
-    const selectedCollectionId =
-      this.conversationStore.getSelectedCollection(tabId);
 
-    if (selectedCollectionId) {
-      const collectionContent =
-        await this.collectionService.getCollectionContent(selectedCollectionId);
+    // Chỉ xử lý context nếu "Enable Context" = true
+    if (enableContext) {
+      const selectedCollectionId =
+        this.conversationStore.getSelectedCollection(tabId);
 
-      if (collectionContent) {
-        const formattedContent =
-          this.collectionService.formatCollectionForPrompt(collectionContent);
-        finalPrompt = formattedContent + prompt; // Đặt collection content trước user prompt
+      if (selectedCollectionId) {
+        const collectionContent =
+          await this.collectionService.getCollectionContent(
+            selectedCollectionId
+          );
 
-        console.log(
-          `[ZenChat] Added collection "${collectionContent.collectionName}" to prompt (${collectionContent.fileCount} files)`
-        );
+        if (collectionContent) {
+          const formattedContent =
+            this.collectionService.formatCollectionForPrompt(collectionContent);
+          finalPrompt = formattedContent + prompt; // Đặt collection content trước user prompt
+
+          console.log(
+            `[ZenChat] Added collection "${collectionContent.collectionName}" to prompt (${collectionContent.fileCount} files)`
+          );
+        }
       }
+    } else {
+      // 🆕 Log khi context được tắt
+      console.log(`[ZenChat] Context disabled - sending prompt directly`);
     }
 
     // Build prompt with system prompt
@@ -210,7 +245,7 @@ export class EnhancedWebviewProvider implements vscode.WebviewViewProvider {
       console.error("Failed to build system prompt:", error);
     }
 
-    // Send prompt (với collection content đã được kèm theo)
+    // Send prompt (với collection content đã được kèm theo nếu enable context)
     this.onSendPrompt(tabId, finalPrompt, requestId);
   }
 

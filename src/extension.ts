@@ -4,6 +4,7 @@ import { WebSocketServer } from "./server/websocket-server";
 import { MessageHandler } from "./server/message-handler";
 import { ConversationStore } from "./storage/conversation-store";
 import { EnhancedWebviewProvider } from "./webview/webview-provider";
+import { SettingsProvider } from "./webview/settings-provider";
 import { CommandRegistry } from "./commands/command-registry";
 import { ServerCommands } from "./commands/server-commands";
 import { AICommands } from "./commands/ai-commands";
@@ -93,6 +94,15 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // 🆕 Register Settings Provider
+  const settingsProvider = new SettingsProvider(context.extensionUri, context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      SettingsProvider.viewType,
+      settingsProvider
+    )
+  );
+
   // Initialize commands
   const aiCommands = new AICommands(
     promptBuilder,
@@ -108,6 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const serverCommands = new ServerCommands(server);
+  (global as any).serverCommands = serverCommands; // 🆕 Lưu vào global để webview truy cập
   const commandRegistry = new CommandRegistry(aiCommands, serverCommands);
 
   commandRegistry.registerAll(context);

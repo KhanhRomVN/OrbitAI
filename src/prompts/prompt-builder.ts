@@ -27,7 +27,7 @@ export class PromptBuilder {
   }
 
   private buildSystemPrompt(): string {
-    const basePrompt = `You are Claude, an expert AI coding assistant created by Anthropic, integrated into VS Code through ZenChat extension.
+    const basePrompt = `You are DeepSeek, an expert AI coding assistant integrated into VS Code through ZenChat extension.
 
 CORE IDENTITY & CAPABILITIES:
 - Expert in multiple programming languages, frameworks, and best practices

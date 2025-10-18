@@ -33,19 +33,38 @@ export class ServerCommands {
     // Kiểm tra port có available không
     const portInfo = await PortManager.checkSpecificPort(targetPort);
 
+    // Trường hợp 1: Port đang được dùng bởi service khác (không phải ZenChat)
     if (!portInfo.isAvailable && !portInfo.isZenChat) {
       vscode.window.showErrorMessage(
-        `Port ${targetPort} is already in use by another service`
+        `Port ${targetPort} is already in use by another service (not ZenChat)`
       );
       return;
     }
 
+    // Trường hợp 2: Port đang chạy ZenChat server
     if (portInfo.isZenChat) {
-      vscode.window.showInformationMessage(
-        `ZenChat: Already connected to server on port ${targetPort}`
+      // Kiểm tra xem có workspace khác đang dùng port này không
+      const currentWorkspacePath =
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      const storedWorkspacePath = await PortManager.getPortWorkspace(
+        targetPort,
+        context
       );
 
-      // Cập nhật UI - Delay để đảm bảo webview đã sẵn sàng
+      // Nếu có workspace khác đang dùng → Tạm dừng
+      if (storedWorkspacePath && storedWorkspacePath !== currentWorkspacePath) {
+        vscode.window.showWarningMessage(
+          `Port ${targetPort} is being used by another VSCode workspace.\n` +
+            `Workspace: ${storedWorkspacePath}`
+        );
+        return;
+      }
+
+      // Nếu không có workspace khác → Gia nhập port
+      this.server.setPort(targetPort);
+      await context.workspaceState.update("orbitai.serverPort", targetPort);
+
+      // Cập nhật UI
       const provider = (global as any).webviewProvider;
       if (provider) {
         setTimeout(() => {
@@ -53,11 +72,13 @@ export class ServerCommands {
         }, 200);
       }
 
-      await context.workspaceState.update("orbitai.serverPort", targetPort);
+      vscode.window.showInformationMessage(
+        `✓ Connected to existing ZenChat server on port ${targetPort}`
+      );
       return;
     }
 
-    // Start server mới
+    // Trường hợp 3: Port available → Start server mới
     try {
       this.server.setPort(targetPort);
       await this.server.start();
@@ -80,10 +101,14 @@ export class ServerCommands {
 
   async stopServer(): Promise<void> {
     await this.server.stop();
-  }
 
-  async restartServer(): Promise<void> {
-    await this.server.restart();
+    // 🆕 Cập nhật UI sau khi stop
+    const provider = (global as any).webviewProvider;
+    if (provider) {
+      setTimeout(() => {
+        provider.updateServerStatus(false, this.server.getPort());
+      }, 100);
+    }
   }
 
   async showServerPort(): Promise<void> {

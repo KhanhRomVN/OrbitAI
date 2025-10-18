@@ -59,7 +59,7 @@ export class MessageHandler {
         errorType: data.errorType,
       });
 
-      vscode.window.showErrorMessage(`Claude Error: ${data.error}`);
+      vscode.window.showErrorMessage(`DeepSeek Error: ${data.error}`);
     }
   }
 
